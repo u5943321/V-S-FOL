@@ -1,47 +1,4 @@
 
-
-
-(*
-
-when a formula with fVar is to be insted, we first look at the free variables in the formula to be insted, and identify if there are variables which should be free after inst, but will be captured by quantifiers. if there are, rename the bound variables, so they will not be matched to the ones that should be free. 
-
-for instance, when inst !a. P(a) with 
-
-P: λf. isInj(f) & a in im(f).
-
-the a 
-*)
-fun newname names n = 
-    if HOLset.member(names,n) then n
-    else newname names (n^"'") 
-
-(*a bit worry for the case !n. P(n#) & n = a
-when view_form, it will give
-"n'" and P(n') & n = a
-instead of n.
-
-val f = “!f:A->B. isFun(f) & f = a ”
-
-val n' = "g"
-
-val ((n,s),b) = dest_forall f
-
-val f0 = “(!f:A->B. f = a) <=> (!g. g = a)”
-val th0 = mk_thm(fvf f0,[],f0)
-
-val f1 = “(!f:A->B. f = a) & a = b”
-
-basic_fconv 
-
-*)
-
-fun rename_forall_fconv f n' = 
-    case view_form f of
-        vQ("!",n,s,b) => 
-        let val b' = mk_forall n' s (substf ((n,s),mk_var(n',s)) b)
-            val l2r = 
-
-
 fun fVar_Inst1 (pair as (P,(argl:(string * sort) list,Q))) f = 
     case view_form f of
         vfVar(P0,args0) =>
@@ -81,3 +38,155 @@ fun fVar_Inst l th =
         val newct = HOLset.union(ct,vs)
     in mk_thm (newct,asl',w')
     end
+
+
+
+(*
+
+when a formula with fVar is to be insted, we first look at the free variables in the formula to be insted, and identify if there are variables which should be free after inst, but will be captured by quantifiers. if there are, rename the bound variables, so they will not be matched to the ones that should be free. 
+
+for instance, when inst !a. P(a) with 
+
+P: λf. isInj(f) & a in im(f).
+
+the a 
+*)
+
+
+
+
+
+
+(*a bit worry for the case !n. P(n#) & n = a
+when view_form, it will give
+"n'" and P(n') & n = a
+instead of n.
+
+val f = “!f:A->B. isFun(f) & f = a ”
+
+val n' = "g"
+
+val ((n,s),b) = dest_forall f
+
+val f0 = “(!f:A->B. f = a) <=> (!g. g = a)”
+val th0 = mk_thm(fvf f0,[],f0)
+
+val f1 = “(!f:A->B. f = a) & a = b”
+
+basic_fconv 
+
+*)
+
+
+(*
+fun rename_forall_fconv f n' = 
+    case view_form f of
+        vQ("!",n,s,b) => 
+        let val b' = mk_forall n' s (substf ((n,s),mk_var(n',s)) b)
+            val l2r = 
+
+*)
+
+
+
+fun newname names n = 
+    if not $ HOLset.member(names,n) then n
+    else newname names (n^"'") 
+
+fun bound_names f = 
+    case view_form f of
+        vPred _ => HOLset.empty String.compare
+      | vConn(_,fl) => bigunion String.compare (List.map bound_names fl)
+      | vQ(_,n,s,b) => HOLset.add(bound_names b,n)
+
+
+(*not sure if should n0 is a free variable name of f*)
+fun avoid_clash f n0 names = 
+    if not $ HOLset.member(names,n0) then (f,[])
+    else 
+        let val n' = newname names n0
+            val fv0 = fvf f 
+            val (name,st) = 
+                case HOLset.find(fn (n1,s1) => n1 = n0) fv0 of 
+                    SOME (name0,st0) => (name0,st0)
+                  | _ => raise ERR
+                               ("avoid_clash.no free variable with name: " ^ n0,
+                                [],[],[f])
+            val new = mk_var(n',st)
+        in (substf ((name,st),new) f,[((n',st),mk_var(name,st))])
+        end
+
+(*there will not be two free vars with same name, so name clash only happens between bound and free, do not need to add new forbidden names *)
+
+fun avoid_clashes f nl names l = 
+    case nl of 
+        [] => (f,l)
+      | h :: t => 
+        let val (f0,l0) = avoid_clashes f t names l
+            val (f1,l1) = avoid_clash f0 h names
+        in (f1,l1 @ l0)
+        end
+
+
+
+fun recover f l = 
+    case l of [] => f
+            | h :: t => substf h (recover f t)
+
+
+(*
+fun inst_form env f = 
+    case f of
+        Pred(P,true,tl) => Pred(P,true,List.map (inst_term' env) tl)
+      | Conn(co,fl) => Conn(co,List.map (inst_form env) fl)
+      | Quant(q,n,s,b) => 
+        let 
+            val s' = inst_sort' env s
+            val b' = inst_form env b
+            val n' = rename_once_need n env 
+        in 
+            Quant(q,n',s',b')
+        end
+      | Pred(f,false,tl) => 
+        (case lookup_f' env f of
+             SOME f' => inst_form env f'
+           | NONE => Pred(f,false,List.map (inst_term' env) tl))
+*)
+
+(*reason of not use inst_form is that if so, then 
+
+“a' = a' & !a. P(a)” [(("a'",set_sort),mk_set "a")]
+
+the bound a will be renamed to be a'.
+*)
+
+fun fVar_Inst' (P:string,(ssl:(string * sort) list,f)) th = 
+    let val bns = bigunion String.compare
+                           (List.map bound_names ((concl th) :: ant th ))
+        val (f0,l) = avoid_clashes f (List.map fst (HOLset.listItems (fvf f))) bns []
+        val th0 = fVar_Inst [(P,(ssl,f0))] th 
+    in inst_thm (mk_inst l []) th0
+    end
+
+
+
+
+(*
+
+
+“a' = a' & !a. P(a)” [(("a'",set_sort),mk_set "a")]
+
+recover f' l'
+  
+val(f',l') = 
+avoid_clashes “b = a & !a. P(a)” ["a","b"]
+(HOLset.add(HOLset.add(HOLset.empty String.compare,"a"),"b"))
+[] 
+
+val n0 = "a"
+
+val names = 
+ (HOLset.add(HOLset.empty String.compare,"a"))
+
+
+*)

@@ -1176,3 +1176,90 @@ fun fVar_Inst l th =
 fVar_Inst [("P",([("y",mem_sort N)],“y = n:mem(N)”))] 
 (N_ind_P)
 *)
+
+
+
+
+val _ = new_sort "fun" [("A",mk_sort "set" []),("B",mk_sort "set" [])]
+val _ = new_sort_infix "fun" "~>"
+
+fun fun_sort A B = mk_sort "fun" [A,B]
+fun mk_func f A B = mk_var(f,fun_sort A B)
+val _ = EqSorts := "fun" :: (!EqSorts)
+
+
+val _ = new_fun "App" (mem_sort (mk_set "B"),
+                       [("f",fun_sort (mk_set "A") (mk_set "B")),
+                       ("a",mem_sort (mk_set "A"))]);
+
+val rel2fun = store_ax("rel2fun",
+“!A B R:A->B. isFun(R) ==> ?!f:A~>B. !a b. App(f,a) = b <=> Holds(R,a,b)”)
+
+
+local
+val l = fVar_Inst 
+[("P",([("a",mem_sort (mk_set "A")),("b",mem_sort (mk_set "B"))],
+ “App(f1:A~>B,a) = b”))] 
+(AX1 |> qspecl [‘A’, ‘B’] |> uex_expand)
+in
+val fun_ext0 = prove_store("fun_ext0",
+e0
+(rpt strip_tac >> 
+ strip_assume_tac l >> pop_assum (K all_tac) >>
+ assume_tac rel2fun >>
+ first_x_assum (qsspecl_then [‘R’] assume_tac) >>
+ qby_tac ‘isFun(R)’ 
+ >-- (rw[Fun_expand] >> arw[] >> 
+     rpt strip_tac >-- (qexists_tac ‘App(f2,a)’ >> rw[]) >>
+     pop_assum (assume_tac o GSYM) >> arw[]) >>
+ first_x_assum drule >> 
+ pop_assum (strip_assume_tac o uex_expand) >>
+ qsuff_tac ‘f1 = f & f2 = f’ >-- (strip_tac >> arw[]) >> strip_tac (* 2 *)
+ >> (first_x_assum irule >> arw[]))
+(form_goal
+ “!A B f1:A~>B f2. (!a. App(f1,a) = App(f2,a)) ==> f1 = f2”));
+end
+
+val fun_ext = prove_store("fun_ext",
+e0
+(rpt strip_tac >> dimp_tac >> rpt strip_tac >> arw[] >>
+ drule fun_ext0 >> arw[])
+(form_goal
+ “!A B f1:A~>B f2. (!a. App(f1,a) = App(f2,a)) <=> f1 = f2”));
+
+
+
+val _ = new_fun "o1" (fun_sort (mk_set "A") (mk_set "C"),
+                     [("phi",fun_sort (mk_set "B") (mk_set "C")),
+                      ("psi",fun_sort (mk_set "A") (mk_set "B"))])
+
+
+val asR_ex = prove_store("asR_ex",
+e0
+(cheat)
+(form_goal
+ “!A B f:A~>B.?R.!a b. Holds(R,a,b) <=> App(f,a) = b”));
+
+val asR_def = asR_ex |> spec_all |> ex2fsym0 "asR" ["f"]
+                     |> gen_all
+
+val o1_ex = prove_store("o1_ex",
+e0
+(cheat)
+(form_goal
+ “!A B phi:A~>B C psi:B~>C. ?f:A~>C. 
+ !a c. App(f,a) = c <=> Holds(asR(psi) o asR(phi),a,c)”));
+
+val o1_def = o1_ex |> spec_all |> ex2fsym0 "o1" ["psi","phi"]
+                   |> gen_all
+
+val o_App = prove_store("o_App",
+e0
+(rpt strip_tac >> flip_tac >> rw[o1_def] >>
+ rw[GSYM o_def] >>
+ qexists_tac ‘App(f,a)’ >> rw[asR_def])
+(form_goal
+ “!A B f:A~>B C g:B~>C a. App(g,(App(f,a))) = App(o1(g,f),a)”));
+
+
+(*seems that need to edit the input of Pa to be fun instead of rel.*)

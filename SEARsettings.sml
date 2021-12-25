@@ -266,13 +266,13 @@ val _ = fVar_Inst1 pair f0
 
 
 
-fVar_Inst1 ("P",([("O",mem_sort N),("b",mem_sort (mk_set "A"))],“~(O:mem(A) = O)”))
+fVar_Inst' ("P",([("O",mem_sort N),("b",mem_sort (mk_set "A"))],“~(O:mem(A) = O)”))
 (AX1 |> qspecl [‘N’,‘A’])
 
 
 
-fVar_Inst1 ("P",([("y",mem_sort N)],“y = n:mem(N)”))
-“!n:mem(N).P(n)”
+fVar_Inst' ("P",([("y",mem_sort N)],“y = n:mem(N)”))
+(mk_thm(essps,[],“!n:mem(N).P(n)”))
 
 val 
 

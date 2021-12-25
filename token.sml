@@ -173,6 +173,7 @@ fun scan_symbol s =
                 if l3 = ["<","=",">"] then (Key "<=>",s3) else
                 if l2 = ["(","*"] then eat_comment 1 s2    else    
                 if l2 = ["-",">"] then (Key "->",s2) else
+                if l2 = ["~",">"] then (Key "~>",s2) else
                 if l2 = ["=","="] then (Key "==",s2) else
                 if l2 = ["?","!"] then (Key "?!",s2) else
                 if mem (List.hd l1) syml then (Key $ List.hd l1,s1) else
