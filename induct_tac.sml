@@ -1,4 +1,11 @@
 
+
+
+(*need to order the variables in the order of quantification, 
+!a. P(a) ==> !b. Q(a,b,n)
+a pred on n, the order of b is before a, b is the first component because it is the first one of being transposed. 
+
+*)
 fun binop_t s t1 t2 = mk_fun s [t1,t2]
 
 fun unop_t s t = mk_fun s [t]

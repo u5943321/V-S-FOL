@@ -19,7 +19,7 @@ let val _ = store_thm(name, th)
 in th
 end
 
-
+(*
 
 fun fVar_Inst1 (pair as (P,(argl:(string * sort) list,Q))) f = 
     case view_form f of
@@ -62,6 +62,7 @@ fun fVar_Inst l th =
     end
 
 
+*)
 
 local
 fun delete'(set,mem) = HOLset.delete(set,mem) handle _ => set
@@ -271,10 +272,13 @@ fVar_Inst' ("P",([("O",mem_sort N),("b",mem_sort (mk_set "A"))],“~(O:mem(A) = 
 
 
 
-fVar_Inst' ("P",([("y",mem_sort N)],“y = n:mem(N)”))
+fVar_Inst[("P",([("y",mem_sort N)],“y = n:mem(N)”))]
 (mk_thm(essps,[],“!n:mem(N).P(n)”))
 
-val 
+val (P:string,(ssl:(string * sort) list,f))
+=("P",([("y",mem_sort N)],“y = n:mem(N)”))
+
+val th = (mk_thm(essps,[],“!n:mem(N).P(n)”))
 
 
 *)

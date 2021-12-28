@@ -1,7 +1,7 @@
 
 fun fVar_Inst1 (pair as (P,(argl:(string * sort) list,Q))) f = 
     case view_form f of
-        vfVar(P0,args0) =>
+        vPred(P0,false,args0) =>
 (*ListPair.map ListPair.foldl*)
 (*mk_inst (zip argl args0)ListPair. [] *)
         if P0 = P then
@@ -12,7 +12,8 @@ fun fVar_Inst1 (pair as (P,(argl:(string * sort) list,Q))) f =
         else f
       | vConn(co,fl) => mk_conn co (List.map (fVar_Inst1 pair) fl)
       | vQ(q,n,s,b) => mk_quant q n s (fVar_Inst1 pair b)
-      | vPred _ => f
+      | vPred (_,true,_) => f
+
 
 
 (*in last meeting discussed that :
@@ -29,7 +30,7 @@ fun fVar_Instl l f =
     case l of [] => f
             | pair :: t => fVar_Inst1 pair (fVar_Instl t f)
 
-fun fVar_Inst l th = 
+fun fVar_Inst0 l th = 
     let val (ct,asl,w) = dest_thm th
         val asl' = List.map (fVar_Instl l) asl
         val w' = fVar_Instl l w
@@ -128,10 +129,22 @@ fun avoid_clashes f nl names l =
         end
 
 
+fun avoid_clashes f nl names l = 
+    case nl of 
+        [] => (f,[])
+      | h :: t => 
+        let val (f0,l0) = avoid_clashes f t names l
+            val (f1,l1) = if mem h l then (f0,[]) else
+                          avoid_clash f0 h names
+        in (f1,l1 @ l0)
+        end
 
+
+(*
 fun recover f l = 
     case l of [] => f
             | h :: t => substf h (recover f t)
+*)
 
 
 (*
@@ -156,17 +169,26 @@ fun inst_form env f =
 (*reason of not use inst_form is that if so, then 
 
 “a' = a' & !a. P(a)” [(("a'",set_sort),mk_set "a")]
-
+{
 the bound a will be renamed to be a'.
 *)
+
+(*assume that there are no free variables in f which has different sorts but same name*)
 
 fun fVar_Inst' (P:string,(ssl:(string * sort) list,f)) th = 
     let val bns = bigunion String.compare
                            (List.map bound_names ((concl th) :: ant th ))
-        val (f0,l) = avoid_clashes f (List.map fst (HOLset.listItems (fvf f))) bns []
-        val th0 = fVar_Inst [(P,(ssl,f0))] th 
+        val (f0,l) = avoid_clashes f (List.map fst (HOLset.listItems (fvf f))) bns (List.map fst ssl)
+        val th0 = fVar_Inst0 [(P,(ssl,f0))] th 
     in inst_thm (mk_inst l []) th0
     end
+
+
+
+fun fVar_Inst l th = 
+    case l of 
+        [] => th
+      | h :: t => fVar_Inst t (fVar_Inst' h th)
 
 
 
