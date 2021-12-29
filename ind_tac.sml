@@ -191,6 +191,19 @@ val (_,[t1,t2]) = dest_pred f
 
 t1
 
+(*if see application P o n, just modify the n to the desired projection
+e.g. m |-> !n. P o n & Q o m 
+
+n m|-> P o n & Q o m
+
+that is a pred such that P0 o Pa(n,m) = TRUE <=> P o n & Q o m
+And (P o n)
+
+
+Note that actual function composition such like ADD are also fobidden, because it is not ADD o Pa(m,n) function symbol application which corrsponds to variables, since ADD is not a variable.
+
+ *)
+
 val p11_ex = prove_store("p11_ex",
 e0
 (strip_tac >> qexists_tac ‘id(A)’ >> rw[])
