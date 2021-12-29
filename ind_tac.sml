@@ -117,9 +117,33 @@ fun inserts d l = List.foldr (fn ((a,b),d) => Binarymap.insert(d,a,b)) d l
 
 
 val psym2IL = inserts (Binarymap.mkDict String.compare)
-[("Le",rastt "Char(LE)"),("Lt",rastt "Char(LT)"),
- ("HasCard",rastt "hasCard(X)")]
+[("Le",(rastt "Char(LE)",[])),("Lt",(rastt "Char(LT)",[])),
+ ("HasCard",(rastt "hasCard(X)",
+             [("xs",ar_sort (mk_ob "A") (rastt "Exp(X,1+1)")),
+              ("n",ar_sort (mk_ob "A") N)]))]
 
+(*
+form2IL [dest_var $ rastt "xs:1->Exp(X,1+1)",dest_var $ rastt "n:1->N"]
+“!x:1->K.HasCard(xs:1->Exp(X,1+1),n:1->N)” 
+keep this example
+
+*)
+
+want ALL(hasCard )
+
+val f = “!x:1->K.HasCard(xs:1->Exp(X,1+1),n:1->N)” 
+
+val bvs = [dest_var $ rastt "xs:1->Exp(X,1+1)",dest_var $ rastt "n:1->N"]
+
+val ((n,s),b) = dest_forall f
+
+val bvs' = (n,s) :: bvs
+
+(form2IL ((n,s) :: bvs) b)
+
+val bvs = [dest_var (rastt "x:1->K"),dest_var $ rastt "xs:1->Exp(X,1+1)",dest_var $ rastt "n:1->N"]
+
+term2IL bvs (rastt "n:1->N") 
 
 
  
@@ -136,7 +160,13 @@ fun form2IL bvs f =
          [term2IL bvs t1,term2IL bvs t2]
       | vPred(P,_,tl) => 
         (case Binarymap.peek(psym2IL,P) of
-            SOME p => mk_pred_ap p (List.map (term2IL bvs) tl)
+            SOME (p,l) => 
+            if l = []  then
+                mk_pred_ap p (List.map (term2IL bvs) tl)
+            else let val env = match_tl essps (List.map mk_var l) 
+                                        (List.map (term2IL bvs) tl) emptyvd
+                     in mk_pred_ap (inst_term env p) (List.map (term2IL bvs) tl)
+                 end
           | _ => raise simple_fail ("form2IL.pred: " ^ P ^ " not found"))
       | vQ ("!",n,s,b) => ALL (form2IL ((n,s) :: bvs) b)
       | vQ ("?",n,s,b) => EX (form2IL ((n,s) :: bvs) b)
@@ -154,8 +184,11 @@ hasCard(X) o Pa(xs,n) = TRUE
 
 hasCard(X) o Pa(xs,n) = TRUE & !x0 xs0. xs = Ins(x0,xs0) ==> ?n0. n = Suc(n0)
 
-form2IL [dest_var $ rastt "n:1->N",dest_var $ rastt "n1:1->N"]
-“n = TRUE” 
+form2IL [dest_var $ rastt "xs:1->Exp(X,1+1)",dest_var $ rastt "n:1->N"]
+“!x:1->K.HasCard(xs:1->Exp(X,1+1),n:1->N)” 
 
+val bvs = [dest_var (rastt "x:1->K"),dest_var $ rastt "xs:1->Exp(X,1+1)",dest_var $ rastt "n:1->N"]
+
+term2IL bvs (rastt "n:1->N") 
 
 “P o n:1->N = TRUE & Q o n1:1->N = TRUE”
