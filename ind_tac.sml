@@ -39,7 +39,7 @@ fun Pol l =
        [] => raise ERR ("Pol.empty input",[],[],[])
       |h :: t => 
        (case t of 
-           [] => raise ERR ("Pol.sing input",[],[],[])
+           [] => (*raise ERR ("Pol.sing input",[],[],[])*) h
          | h1 :: t1 => 
            (case t1 of 
                [] => Po h h1
@@ -55,6 +55,27 @@ fun pos n l =
         [] => raise simple_fail "pos.not a list member"
       | h :: t => if h = n then 1 else (pos n t) + 1
 
+p11(A) = id(A)
+
+form2IL [dest_var $ rastt "n:1->N"]
+“P o n:1->N = TRUE” 
+ 
+want EQ(1+1) o Pa(P,TRUE o To1(N)) o n
+
+when bvs are a b. output is a term FM such that 
+!a b. FM o Pa(a,b) = TRUE <=> P(a,b) 
+
+val f = “P o n:1->N = TRUE” 
+
+val bvs = [dest_var $ rastt "n:1->N"]
+
+val (_,[t1,t2]) = dest_pred f
+
+t1
+
+val (f,s,tl) = dest_fun t1
+
+term2IL bvs (rastt "TRUE") (rastt "P:N->1+1")(hd tl)
 
 fun term2IL bvs t =
     let val doms = List.map (cod o snd) bvs
@@ -69,7 +90,16 @@ fun term2IL bvs t =
           | vFun(f,s,tl) => 
             mk_fun f (List.map (term2IL bvs) tl)
           | _ => raise simple_fail "bound variables should not be here"
-    end; 
+    end;  
+
+(*So in current version, the term2IL vFun only for function symbols which corresponds to function application to generalised elements. maybe handle exception by Ev?
+
+so P o n corres EV(Tp1(P),n), this is a function app to gen el. 
+
+P:N -> 1+1. Tp1(N):1-> Exp(N,1+1),n:1->N
+
+still P is not a generalised element so the construction of Tp1(P) still problem.
+*)
 
 
 
@@ -81,7 +111,7 @@ fun Pal l =
        [] => raise ERR ("Pal.empty input",[],[],[])
       |h :: t => 
        (case t of 
-           [] => raise ERR ("Pal.sing input",[],[],[])
+           [] => (*raise ERR ("Pal.sing input",[],[],[])*) h
          | h1 :: t1 => 
            (case t1 of 
                [] => Pa h h1
@@ -120,7 +150,8 @@ val psym2IL = inserts (Binarymap.mkDict String.compare)
 [("Le",(rastt "Char(LE)",[])),("Lt",(rastt "Char(LT)",[])),
  ("HasCard",(rastt "hasCard(X)",
              [("xs",ar_sort (mk_ob "A") (rastt "Exp(X,1+1)")),
-              ("n",ar_sort (mk_ob "A") N)]))]
+              ("n",ar_sort (mk_ob "A") N)])),
+ ("Even",(rastt "EVEN",[]))]
 
 (*
 form2IL [dest_var $ rastt "xs:1->Exp(X,1+1)",dest_var $ rastt "n:1->N"]
@@ -129,7 +160,7 @@ keep this example
 
 *)
 
-want ALL(hasCard )
+
 
 val f = “!x:1->K.HasCard(xs:1->Exp(X,1+1),n:1->N)” 
 
@@ -146,7 +177,30 @@ val bvs = [dest_var (rastt "x:1->K"),dest_var $ rastt "xs:1->Exp(X,1+1)",dest_va
 term2IL bvs (rastt "n:1->N") 
 
 
+
+form2IL [dest_var $ rastt "n:1->N"]
+“P o n:1->N = TRUE” 
  
+want EQ(1+1) o Pa(P o n,TRUE)
+
+val f = “P o n:1->N = TRUE” 
+
+val bvs = [dest_var $ rastt "n:1->N"]
+
+val (_,[t1,t2]) = dest_pred f
+
+t1
+
+val p11_ex = prove_store("p11_ex",
+e0
+(strip_tac >> qexists_tac ‘id(A)’ >> rw[])
+(form_goal
+ “!A.?p. id(A) = p”));
+
+val p11_def = p11_ex |> spec_all |> ex2fsym0 "p11" ["A"] |> gen_all
+form2IL [dest_var $ rastt "n:1->N"]
+“Even(Suc(n:1->N))” 
+
 fun form2IL bvs f = 
     case view_form f of 
         vConn("&",[f1,f2]) => 
@@ -174,18 +228,25 @@ fun form2IL bvs f =
       | _ => raise ERR ("form2IL.ill-formed formula",[],[],[f])
 
 
-val _ = new_pred "HasCard" [("xs",ar_sort ONE (rastt "Exp(X,1+1)")),
-                            ("n",ar_sort ONE N)]
+val _ = new_pred "HasCard" [("xs",ar_sort (mk_ob "A") (rastt "Exp(X,1+1)")),
+                            ("n",ar_sort (mk_ob "A") N)]
 
 val HasCard_def = store_ax("HasCard_def",
- “!X xs n. HasCard(xs,n) <=> hasCard(X) o Pa(xs,n) = TRUE”)
+ “!X A xs n. HasCard(xs,n) <=> hasCard(X) o Pa(xs,n) = True(A)”)
+
+val _ = new_pred "Even" [("n",ar_sort (mk_ob "A") N)]
+
+val _ = new_fun "EVEN" (ar_sort N (rastt "1+1"),[])
+
+val HasCard_def = store_ax("HasCard_def",
+ “!X A xs n. HasCard(xs,n) <=> hasCard(X) o Pa(xs,n) = True(A)”)
 
 hasCard(X) o Pa(xs,n) = TRUE
 
 hasCard(X) o Pa(xs,n) = TRUE & !x0 xs0. xs = Ins(x0,xs0) ==> ?n0. n = Suc(n0)
 
-form2IL [dest_var $ rastt "xs:1->Exp(X,1+1)",dest_var $ rastt "n:1->N"]
-“!x:1->K.HasCard(xs:1->Exp(X,1+1),n:1->N)” 
+form2IL [dest_var $ rastt "n:1->N"]
+“P o n:1->N = TRUE” 
 
 val bvs = [dest_var (rastt "x:1->K"),dest_var $ rastt "xs:1->Exp(X,1+1)",dest_var $ rastt "n:1->N"]
 
