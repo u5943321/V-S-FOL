@@ -1737,4 +1737,11 @@ e0
 (form_goal
  “!A. TL(Nil(A)) = Nil(A) & !a:mem(A) l.TL(CONS(a,l)) = l”));
 
-(*seems that need to edit the input of Pa to be fun instead of rel.*)
+(*
+
+val nth_def = Thm1_fun |> qspecl [‘1’,‘Exp(List(A),A)’,
+                                   ‘asF(Tp1(asR(Hd(A))))’,
+                                   ‘o1(,Tl(A))’]
+
+[‘List(A)’,‘A’,‘Hd(A)’,‘’]
+*)
