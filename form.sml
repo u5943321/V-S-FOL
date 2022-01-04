@@ -385,6 +385,81 @@ and match_fl nss l1 l2 env =
       | _ => raise simple_fail "incorrect length of list"
 
 
+
+(*
+want 
+
+(A & B ==> C) <=> (A ==> B ==> C)
+
+Inj(f) & Surj(f) ==> Bij(f) rw into 
+
+Inj(f) ==> Surj(f) ==> Bij(f)
+
+P(a,b) <=> Q(a,b) cannot be auto matched to anything 
+
+*)
+
+
+
+
+(*
+fun match_form nss ps pat cf env:menv = 
+    case (view_term pat,view_term cf) of
+        (vPred(P1,true,l1),vPred(P2,true,l2)) => 
+        if P1 <> P2 then 
+            raise ERR ("different predicates: ",[],[],[pat,cf])
+        else match_tl' nss l1 l2 env
+      | (vConn(co1,l1),vConn(co2,l2)) => 
+        if co1 <> co2 then 
+            raise ERR ("different connectives: ",[],[],[pat,cf])
+        else match_fl nss ps l1 l2 env
+      | (vQ(q1,n1,s1,b1),vQ(q2,n2,s2,b2)) => 
+        if q1 <> q2 then 
+            raise ERR ("different quantifiers: ",[],[],[pat,cf])
+        else match_form nss ps b1 b2 (match_sort' nss s1 s2 env)
+      | (Pred (fm,false,[]),_) => 
+        if HOLset.member(ps,fm) then 
+            if pat = cf then env
+            else raise ERR ("match_form.current fvar is local constant",[],[],[pat,cf])
+        else
+            (case (lookup_f' env fm) of
+                 SOME f => if eq_form(f,cf) then env else
+                           raise ERR ("double bind of formula variables",[],[],[pat,f,cf])
+               | _ => fv2f' fm cf env)
+      | (Pred(fm1,false,args1),cf) => 
+        if HOLset.member(ps,fm) then 
+            if pat = cf then env
+            else raise ERR ("match_form.current fvar is local constant",[],[],[pat,cf])
+        else
+            (case (lookup_f' env fm) of
+                 SOME f => if eq_form(f,cf) then env else
+                           raise ERR ("double bind of formula variables",[],[],[pat,f,cf])
+               | _ => fv2f' fm cf env)
+
+        (case cf of 
+            Pred(fm2,false,args2) => 
+             if fm1 = fm2 then match_tl' nss args1 args2 env
+             else env
+            | _ => if length args1 = 1 andalso 
+                      length (HOLset.listItems (fvf cf)) = 1
+                   then 
+                       match_tl' nss [(hd args1)] 
+                                 [mk_var $ hd (HOLset.listItems (fvf cf))]    env
+                   else env) 
+      | _ => raise ERR ("different formula constructors",[],[],[pat,cf])
+and match_fl nss ps l1 l2 env = 
+    case (l1,l2) of 
+        ([],[]) => env
+      | (h1::t1,h2::t2) =>  
+        match_fl nss ps t1 t2 (match_form nss ps h1 h2 env)
+      | _ => raise simple_fail "incorrect length of list"
+
+val pat = “(P & Q ==> R)”
+val cf = mk_imp (mk_P0 "Inj" (mk_))
+match_form 
+
+*)
+
 fun strip_forall f = 
     case f of 
         Quant("!",n,s,b) => 
@@ -443,19 +518,59 @@ fun name_clash n env =
     in 
         List.exists (fn n0 => n0 = n) new_names
     end
+(*name clash does the same work 
 
-fun rename_once_need n env = 
-    if name_clash n env = false then n else rename_once_need (n^"'") env
+        val new_terms = List.map snd (pvd (vd_of env))
+        val new_names = mapfilter (fst o dest_var) new_terms
+   
+*)
+
+
+
+(*
+fun rename_once_need nl n = 
+    if name_clash nl n = false then n else rename_once_need nl (n^"'") 
+*)
+
+
+(*
+
+x |-> .....f(n)
+y |-> ....g(n',j,k,l)
+
+!n. P(n)
+
+
+
+
+*)
+
 
 fun inst_form env f = 
     case f of
         Pred(P,true,tl) => Pred(P,true,List.map (inst_term' env) tl)
       | Conn(co,fl) => Conn(co,List.map (inst_form env) fl)
+      | Quant(q,n,s,b) => Quant(q,n,inst_sort' env s,inst_form env b)
+      | Pred(f,false,tl) => 
+        (case lookup_f' env f of
+             SOME f' => inst_form env f'
+           | NONE => Pred(f,false,List.map (inst_term' env) tl))
+    
+
+
+(*
+fun inst_form env f = 
+    let val new_terms = List.map snd (pvd (vd_of env))
+        val new_names = mapfilter (fst o dest_var) new_terms
+        fun recurse f =
+            case f of
+        Pred(P,true,tl) => Pred(P,true,List.map (inst_term' env) tl)
+      | Conn(co,fl) => Conn(co,List.map recurse fl)
       | Quant(q,n,s,b) => 
         let 
             val s' = inst_sort' env s
-            val b' = inst_form env b
-            val n' = rename_once_need n env 
+            val b' = recurse b
+            val n' = rename_once_need new_names n 
         in 
             Quant(q,n',s',b')
         end
@@ -467,6 +582,32 @@ fun inst_form env f =
         (case lookup_f' env fvn of
              SOME f' => f'
            | NONE => f)*)
+
+
+fun inst_form env f = 
+    let val new_terms = List.map snd (pvd (vd_of env))
+        val new_names = mapfilter (fst o dest_var) new_terms
+        fun recurse f =
+            case f of
+        Pred(P,true,tl) => Pred(P,true,List.map (inst_term' env) tl)
+      | Conn(co,fl) => Conn(co,List.map recurse fl)
+      | Quant(q,n,s,b) => 
+        let 
+            val s' = inst_sort' env s
+            val b' = recurse b
+            val n' = rename_once_need new_names n 
+        in 
+            Quant(q,n',s',b')
+        end
+      | Pred(f,false,tl) => 
+        (case lookup_f' env f of
+             SOME f' => inst_form env f'
+           | NONE => Pred(f,false,List.map (inst_term' env) tl))
+    (*  | fVar fvn => 
+        (case lookup_f' env fvn of
+             SOME f' => f'
+           | NONE => f)*)
+*)
 
 
 fun psymsf f = 
@@ -531,15 +672,31 @@ datatype form_view =
   | vQ of string * string * sort * form
   | vPred of string * bool * term list
 
+(*
+fun dest_t (n,s) t = 
+    case t of 
 
+*)
 
+local exception CLASH
+in
 fun dest_forall f = 
+    let val vs = fvf f
+    in
     case f of 
         Quant("!",n,s,b) =>
-        let val ns' = dest_var (pvariantt (fvf f) (mk_var(n,s)))
+        (case HOLset.find (fn (n0,s0) => n0 = n) vs of 
+             NONE =>((n,s),subst_bound (mk_var (n,s)) b)
+           | SOME _ => raise CLASH)
+        handle CLASH =>
+        let val ns' = dest_var (pvariantt vs (mk_var(n,s)))
         in (ns',subst_bound (mk_var ns') b)
         end
       | _ => raise ERR ("not a universal",[],[],[f])
+    end
+end
+
+(*think doing it the HOL way*)
 
 fun view_form f =
     case f of

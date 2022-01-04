@@ -417,4 +417,53 @@ fun ill_formed_fv (n,s) =
     case dest_sort s of (_,tl) => 
                         List.exists is_bound tl
 
+val abbrdict0: (*(term,term) Binarymap.dict = 
+Binarymap.mkDict term_compare
+*)
+
+(*if use strings, then "1+1" are abbrev to be 2, but 2 + 2, or any other coproduct, cannot have abbrev, since it is occupied *)
+ (string, string * (term list) * (term list)) Binarymap.dict = Binarymap.mkDict String.compare
+
+val abbrdict = ref abbrdict0
+
+val unabbrdict0: (string, string * (term list) * (term list)) Binarymap.dict = Binarymap.mkDict String.compare
+
+val unabbrdict = ref unabbrdict0
+
+(*cannot use 
+f (abf,tl1,tl2)
+
+since then cannot capture abbrev such as Exp(X,2) as Pow 
+
+or handle error once the matching fails.
+
+*)
+
+fun new_abbr f (abf,tl1,tl2) =
+    let val _  = abbrdict := Binarymap.insert(!abbrdict,f,(abf,tl1,tl2))
+val _ =  unabbrdict := Binarymap.insert(!unabbrdict,abf,(f,tl2,tl1))
+in () end
+
+
+
+(*should we check that they are already registered as function symbols yet before inserting them into the dict?*)
+
+
+(*
+“!f:2 ->A. T”
+val _ = new_fun "2" (ob_sort,[])
+
+val _ = new_abbr "2" ("+",[],[rastt "1",rastt "1"])
+
+
+val _ = new_fun "Pow" (ob_sort,[("X",ob_sort)])
+
+"Pow" ("Exp",[rastt "X"],[rastt "X",rastt "1 * 1"])
+
+val _ = new_abbr "Pow" ("Exp",[rastt "X"],[rastt "X",rastt "1 + 1"])
+
+ "Exp" ("Pow",[rastt "X",rastt "1+1"],[rastt "X"])
+*)
+
+
 end

@@ -131,6 +131,8 @@ fun EQ_fsym f thml =
                  mk_eq (mk_fun f ll) (mk_fun f rl))
         end
 
+
+
                 
 fun EQ_psym p thml = 
     case lookup_pred (!psyms) p of 
@@ -153,6 +155,35 @@ fun EQ_psym p thml =
             thm (contl_U (List.map cont thml),asml,
                  mk_dimp (mk_pred p ll) (mk_pred p rl))
         end
+
+
+
+              
+fun EQ_psym p thml = 
+    if p = "=" then 
+        let 
+            val sl = List.map (fst o dest_eq o concl) thml
+            val (ll,rl,asml) = List.foldr thml_eq_pairs ([],[],[]) thml
+            fun mkeq l = case l of [t1,t2] => mk_eq t1 t2
+                                 | _ =>  raise ERR ("EQ_psym.mkeq.not a 2-item list",[],l,[])
+        in 
+            thm (contl_U (List.map cont thml),asml,
+                 mk_dimp (mkeq ll) (mkeq rl))
+        end
+    else 
+        let val sl = List.map (fst o dest_eq o concl) thml
+            val (ll,rl,asml) = List.foldr thml_eq_pairs ([],[],[]) thml
+        in case lookup_pred (!psyms) p of 
+               SOME _ => 
+               thm (contl_U (List.map cont thml),asml,
+                    mk_dimp (mk_pred p ll) (mk_pred p rl))
+             | _ => thm (contl_U (List.map cont thml),asml,
+                    mk_dimp (mk_fvar p ll) (mk_fvar p rl))
+        end
+
+
+
+
 
 fun tautI f = thm(fvf f,[],mk_disj f (mk_neg f))
 

@@ -78,14 +78,14 @@ e0
  >-- (match_mp_tac imp_ind_l (* irule bug *)>> strip_tac (* 2 *)
      (*0 case*)
      >-- (rpt strip_tac >>
-         qsuff_tac ‘Holds(R, O, x') ==>
-         Holds(R, Eval(SUC, O), Eval(f, x'))’ 
+         qsuff_tac ‘Holds(R, O, x) ==>
+         Holds(R, Eval(SUC, O), Eval(f, x))’ 
          >-- (rpt strip_tac >> first_assum drule >> arw[]) >>
          arw[] >> rpt strip_tac >> first_assum irule >>
          last_assum $ irule o iffLR >> arw[]) >>
      rpt strip_tac >> arw[] >> 
      rpt strip_tac >> first_assum irule >>
-     qpick_x_assum ‘Holds(R, Eval(SUC, n'), x')’ mp_tac >> 
+     qpick_x_assum ‘Holds(R, Eval(SUC, n), x)’ mp_tac >> 
      arw[] >> rpt strip_tac >> first_assum irule >> arw[]) >>
  qby_tac ‘!x. Holds(R,O,x) ==> x = a’
  >-- (rpt strip_tac >> ccontra_tac >>
@@ -126,7 +126,7 @@ e0
            flip_tac >> rw[SUC_NONZERO]) >>
       rpt strip_tac (*2  *)
       >-- (first_x_assum irule >> first_x_assum accept_tac) >>
-      qexists_tac ‘x'’ >> rw[] >>
+      qexists_tac ‘x’ >> rw[] >>
       fs[SUC_eq_eq]) >>
  pop_assum mp_tac >>
  last_x_assum mp_tac >> last_x_assum mp_tac >> 
@@ -142,6 +142,7 @@ e0
  x_choose_then "ss1" strip_assume_tac u_R_ss1 >>
  pop_assum (K all_tac) >>
  pop_assum (assume_tac o GSYM) >>
+
  qby_tac 
  ‘!n x. Holds(R,n,x) ==> IN(Pair(n,x),ss1)’
  >-- (first_x_assum match_mp_tac >> once_arw[] >>
@@ -149,10 +150,10 @@ e0
       >-- (strip_tac (*2*)>> first_x_assum accept_tac) >>
       rpt strip_tac (* 2 *)
       >-- (first_x_assum irule >> first_x_assum accept_tac) >>
-      first_assum (qspecl_then [‘n'’,‘x''’] assume_tac) >>
+      first_assum (qspecl_then [‘n’,‘x'’] assume_tac) >>
       first_x_assum drule >> pop_assum strip_assume_tac >> 
       once_arw[] >>
-      qsuff_tac ‘x0 = x'’
+      qsuff_tac ‘x0 = x’
       >-- (strip_tac >> arw[]) >>
       first_x_assum irule >> first_x_assum accept_tac) >>
  pop_assum mp_tac >> once_arw[] >> rw[Pair_def] >>
@@ -1824,14 +1825,14 @@ e0
       first_assum irule >> rw[Le_refl]) >>
  match_mp_tac l >> rw[Suc_def] >> strip_tac (* 2 *)
  >-- (rpt strip_tac >> drule Le_O >>  
-      assume_tac $ EQ_fVar "P" [assume “a0' = O”] >>
+      assume_tac $ EQ_psym "P" [assume “a0 = O”] >>
       first_assum $ irule o iffRL >>
       first_assum irule >> rpt strip_tac >>
       pop_assum mp_tac >> rw[NOT_Lt_O]) >>
  rpt strip_tac >> drule Le_cases >> pop_assum mp_tac >>
  rw[Lt_Suc_Le] >> strip_tac
  >-- (first_assum irule >> first_assum accept_tac) >>
- assume_tac $ EQ_fVar "P" [assume “a0' = Suc(n)”] >>
+ assume_tac $ EQ_psym "P" [assume “a0 = Suc(n)”] >>
  first_assum $ irule o iffRL >>
  last_x_assum irule  >> rw[Lt_Suc_Le] >> first_x_assum accept_tac)
 (form_goal
@@ -1867,7 +1868,7 @@ e0
      qexists_tac ‘n’ >> rw[Le_refl]) >>
  match_mp_tac l >> rpt strip_tac (* 2 *) >--
  (drule Le_O >>
- assume_tac $ EQ_fVar "P" [assume “n0' = O”] >>
+ assume_tac $ EQ_psym "P" [assume “n0 = O”] >>
  ccontra_tac >> 
  first_x_assum $ drule o iffLR >>
  first_x_assum drule >>
@@ -1877,11 +1878,11 @@ e0
  drule Le_cases >> pop_assum mp_tac >> rw[Lt_Suc_Le] >> strip_tac (* 2 *)
  >-- (first_x_assum drule >> first_x_assum accept_tac) >>
  ccontra_tac >>
- assume_tac $ EQ_fVar "P" [assume “n0' = Suc(n')”] >>
+ assume_tac $ EQ_psym "P" [assume “n0 = Suc(n)”] >>
  first_x_assum $ drule o iffLR >> 
  last_x_assum drule >> pop_assum strip_assume_tac >>
- qspecl_then [‘n’,‘Suc(n')’] assume_tac LESS_cases >>
- cases_on “Lt(n,Suc(n'))” >--
+ qspecl_then [‘n'’,‘Suc(n)’] assume_tac LESS_cases >> 
+ cases_on “Lt(n',Suc(n))” >--
  (pop_assum mp_tac >> rw[Lt_Suc_Le] >> ccontra_tac >> first_x_assum drule>>
  first_x_assum opposite_tac) >>
  pop_assum mp_tac >> pop_assum strip_assume_tac >> strip_tac 
@@ -2082,12 +2083,11 @@ e0
 (irule l >> 
  rw[Mul_O,Add_O] >> rw[Suc_def,Mul_Suc] >> rpt strip_tac >>
  arw[] >> arw[Add_Suc] >>
- qsspecl_then [‘Suc(n')’,‘ Add(Mul(a, n'), a)’] assume_tac Add_sym' >> 
+ qsspecl_then [‘Suc(n)’,‘ Add(Mul(a, n), a)’] assume_tac Add_sym' >> 
  arw[Add_Suc] >> 
- qsspecl_then [‘n'’,‘Mul(a,n')’] assume_tac Add_sym' >> arw[] >>
+ qsspecl_then [‘n’,‘Mul(a,n)’] assume_tac Add_sym' >> arw[] >>
  rw[GSYM Add_assoc] >> 
- qsspecl_then [‘n'’,‘a’] assume_tac Add_sym' >> arw[]
- )
+ qsspecl_then [‘n’,‘a’] assume_tac Add_sym' >> arw[])
 (form_goal
  “!m n. Mul(Suc(n),m) = Add(m,Mul(n,m))”));
 end
@@ -2116,7 +2116,7 @@ val Mul_sym = prove_store("Mul_sym",
 e0
 (irule l >> rw[Mul_clauses,Suc_def] >>
  rpt strip_tac >> arw[] >>
- qsspecl_then [‘Mul(n'',n')’,‘n''’] accept_tac Add_sym')
+ qsspecl_then [‘Mul(n',n)’,‘n'’] accept_tac Add_sym')
 (form_goal
  “!m n. Mul(m,n) = Mul(n,m)”));
 end
@@ -2534,7 +2534,7 @@ val l =
 val l' = 
  fVar_Inst 
 [("P",([("b",mem_sort N)],
- “Le(b, Suc(n')) ==> Add(Sub(Suc(n'), b), b) = Suc(n')”))] 
+ “Le(b, Suc(n)) ==> Add(Sub(Suc(n), b), b) = Suc(n)”))] 
  N_ind_P 
 in
 val SUB_ADD = prove_store("SUB_ADD",
@@ -2547,8 +2547,8 @@ e0
  rw[Suc_def] >> rw[Sub_mono_eq] >> rw[Add_Suc] >> 
  rw[Suc_eq_eq] >> rw[Le_MONO] >> 
  rpt strip_tac >> 
- qby_tac ‘Le(n,Suc(n'))’ 
- >-- (irule Le_trans >> qexists_tac ‘n'’ >> arw[] >>
+ qby_tac ‘Le(n',Suc(n))’ 
+ >-- (irule Le_trans >> qexists_tac ‘n’ >> arw[] >>
      assume_tac Lt_Suc >> fs[Lt_def]) >>
  first_x_assum drule >> rev_drule Sub_Suc1 >> fs[] >> 
  first_x_assum irule >> arw[])

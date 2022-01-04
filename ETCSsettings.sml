@@ -1,3 +1,34 @@
+
+val _ = new_pred "T" [];
+val _ = new_pred "F" [];
+
+fun mk_foralls nsl f = 
+    case rev nsl of 
+        [] => f
+      | (h as (n,s)) :: t =>
+        mk_forall n s (mk_foralls t f)
+
+fun define_pred f = 
+    let val fvs = fvf f
+        val _ = HOLset.isEmpty fvs orelse 
+                raise simple_fail
+                      "formula has unexpected free variables"
+        val (body,bvs) = strip_forall f 
+        val (l,r) = dest_dimp body 
+        val (P,args) = dest_fvar l 
+        val _ = List.all is_var args orelse raise simple_fail"input arguments is not a variable list"
+        val _ = HOLset.isSubset (fvf r,fvf l) 
+                orelse raise simple_fail"unexpected free variable on RHS"
+        val _ = new_pred P (List.map dest_var args)
+        val l' = mk_pred P args
+        val f' = mk_foralls bvs (mk_dimp l' r)
+    in mk_thm(essps,[],f')
+    end 
+
+
+
+
+
 fun sspecl tl th = 
     let val (b,vs) = strip_forall $ concl th
         val ars = List.filter (fn (n,s) => not (on_ground o fst o dest_sort o snd $ (n,s))) vs
@@ -135,9 +166,14 @@ val ONE_prop = ONE_def |> rewr_rule [is1_def]
 
 val To1_def = ONE_prop |> spec_all |> uex_expand |> ex2fsym0 "To1" ["X"] |> gen_all |> store_as "To1_def"
 
-val _ = new_pred "is0" [("ZERO",ob_sort)]
+(*val _ = new_pred "is0" [("ZERO",ob_sort)] *)
 
-val is0_def = store_ax("is0_def",“!ZERO.is0(ZERO) <=> !X.?!f:ZERO ->X. T”)
+val is0_def = 
+define_pred “!ZERO.is0(ZERO) <=> !X.?!f:ZERO ->X. T”
+
+(* store_ax("is0_def",“!ZERO.is0(ZERO) <=> !X.?!f:ZERO ->X. T”) *)
+
+
 
 val ZERO_ex = store_ax("ZERO_ex",“?ZERO.is0(ZERO)”)
 

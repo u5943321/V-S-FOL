@@ -507,7 +507,7 @@ e0
  rw[Del_Empty,isFinite_Empty] >> strip_tac >>
  strip_tac >> drule isFinite_Insert >> arw[] >> rpt strip_tac >>
  cases_on “x = x':1->X” >-- 
- (arw[] >> cases_on “IN(x':1->X,xs')”
+ (arw[] >> cases_on “IN(x':1->X,xs)”
  >-- (drule $iffLR Ins_absorb >> arw[]) >>
  drule Del_Ins >> arw[]) >>
  drule Del_Ins_SWAP >> arw[] >> 
@@ -696,8 +696,8 @@ e0
  pop_assum (assume_tac o GSYM) >> pop_assum strip_assume_tac >>
  arw[] >> irule List_ind >> pop_assum (assume_tac o GSYM) >>
  arw[] >> rpt strip_tac (* 2 *)
- >-- (disj2_tac >> qexistsl_tac [‘a’,‘l'’] >> rw[]) >>
- disj2_tac >> qexistsl_tac [‘a’,‘l'’] >> rw[])
+ >-- (disj2_tac >> qexistsl_tac [‘a’,‘l’] >> rw[]) >>
+ disj2_tac >> qexistsl_tac [‘a’,‘l’] >> rw[])
 (form_goal
  “!A l:1-> List(A). l = Nil(A) | ?a0 l0. l = CONS(a0,l0)”));
 
@@ -757,8 +757,8 @@ e0
  (*cases_on
  “?a2:1->A l2. l = CONS(a2,l2)” *)
  qsspecl_then [‘l’] strip_assume_tac CONS_or_Nil >-- (* 2 *)
- (fs[CONS_eq_eq] >> qexists_tac ‘x0'’ >> arw[]) >>
- fs[CONS_eq_eq] >> qexists_tac ‘x0'’ >> arw[])
+ (fs[CONS_eq_eq] >> qexists_tac ‘x0’ >> arw[]) >>
+ fs[CONS_eq_eq] >> qexists_tac ‘x0’ >> arw[])
 (form_goal
  “!X x:1->X A t:A * X ->X l0 x0. Rf(x,t) o Pa(l0,x0) = TRUE ==>
   Rf(x,t) o Pa(l0,x0) = TRUE & 

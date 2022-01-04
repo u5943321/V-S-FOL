@@ -1,4 +1,7 @@
 
+val _ = new_pred "T" [];
+val _ = new_pred "F" [];
+
 fun sspecl tl th = 
     let val (b,vs) = strip_forall $ concl th
         val ars = List.filter (fn (n,s) => not (on_ground o fst o dest_sort o snd $ (n,s))) vs
@@ -912,7 +915,7 @@ e0
   qexists_tac ‘b’ >> arw[])
  >> rpt strip_tac (* 4 *)
  >-- (first_x_assum (qspecl_then [‘a’,‘a’] assume_tac) >> fs[] >>
-     qexists_tac ‘b'’ >> arw[])
+     qexists_tac ‘b’ >> arw[])
  >-- (fs[] >> rev_full_simp_tac[] >> 
      first_x_assum (qspecl_then [‘b1’,‘b2’] (assume_tac o GSYM)) >> 
      arw[] >> qexists_tac ‘a’ >> arw[]) 
@@ -2852,7 +2855,7 @@ e0
  irule N_ind_lemma >> 
  last_x_assum (assume_tac o GSYM) >> arw[] >> strip_tac (* 2 *)
  >-- (rpt strip_tac >> first_x_assum drule >>
-      qexists_tac ‘Eval(SUC,n)’ >> arw[] >>
+      qexists_tac ‘Eval(SUC,n')’ >> arw[] >>
       rw[S0_SUC]) >>
  qexists_tac ‘O’ >> arw[] >> rw[O_def]     
  )
@@ -2908,11 +2911,11 @@ e0
       accept_tac (dimp_mp_l2r (assume “IN(n:mem(N), s)”)
                               (assume “IN(n:mem(N), s) <=> P(n)”))) >>
  irule N_ind_lemma' >> rpt strip_tac (* 2 *)
- >-- (qsuff_tac ‘P(Eval(SUC,n'))’
+ >-- (qsuff_tac ‘P(Eval(SUC,n))’
      >-- (strip_tac >>
-         last_x_assum (qspecl_then [‘Eval(SUC,n')’] assume_tac) >>
-         accept_tac (dimp_mp_l2r (assume “P(Eval(SUC, n'))”)
-                  (assume “P(Eval(SUC, n')) <=> IN(Eval(SUC, n'), s)”)))>>
+         last_x_assum (qspecl_then [‘Eval(SUC,n)’] assume_tac) >>
+         accept_tac (dimp_mp_l2r (assume “P(Eval(SUC, n))”)
+                  (assume “P(Eval(SUC, n)) <=> IN(Eval(SUC, n), s)”)))>>
      first_x_assum irule >>
      first_x_assum (irule o iffRL) >> first_x_assum accept_tac) >>
  first_x_assum (irule o iffLR) >> first_x_assum accept_tac)
@@ -2934,7 +2937,7 @@ val O_xor_SUC = prove_store("O_xor_SUC",
 e0
 (irule O_xor_SUC_l >> rpt strip_tac (* 2 *)
  >-- (dimp_tac >> strip_tac 
-     >-- (qexists_tac ‘n'’ >> rw[]) >>
+     >-- (qexists_tac ‘n’ >> rw[]) >>
      rw[SUC_NONZERO]) >>
  rw[] >> ccontra_tac >> pop_assum strip_assume_tac >> fs[SUC_NONZERO])
 (form_goal

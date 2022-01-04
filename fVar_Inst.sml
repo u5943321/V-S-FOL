@@ -1,4 +1,7 @@
 
+
+(*does not consider same fvar with different sorts of input lists
+maybe add this as a wf condiiton? *)
 fun fVar_Inst1 (pair as (P,(argl:(string * sort) list,Q))) f = 
     case view_form f of
         vPred(P0,false,args0) =>
@@ -175,6 +178,20 @@ the bound a will be renamed to be a'.
 
 (*assume that there are no free variables in f which has different sorts but same name*)
 
+
+
+(*
+
+is the power of 
+
+P(A,B) <=> A = Pow(B)
+
+?l. length l = n & !n. n < LENGTH l ==> P(El(n),El(n+1))
+
+
+
+*)
+
 fun fVar_Inst' (P:string,(ssl:(string * sort) list,f)) th = 
     let val bns = bigunion String.compare
                            (List.map bound_names ((concl th) :: ant th ))
@@ -182,6 +199,19 @@ fun fVar_Inst' (P:string,(ssl:(string * sort) list,f)) th =
         val th0 = fVar_Inst0 [(P,(ssl,f0))] th 
     in inst_thm (mk_inst l []) th0
     end
+
+(*the thing that fVar_Inst' does for avoid clash is that 
+ once discover that there is a free variable introduced due to inst, rename the free variable so it has a name which is not possible to be captured by a bounded variable, and record the renaming in the list. after the inst, rename the free variable back to the orginal name that it should have.
+
+
+fVar_Inst' ("P",([("y",mem_sort N)],“y = n:mem(N)”))]
+(mk_thm(essps,[],“!n:mem(N).P(n)”))
+
+val P = "P"
+val ssl = [("y",mem_sort N)];
+val f = “y = n:mem(N)”
+val th= mk_thm(essps,[],“!n:mem(N).P(n)”)
+*)
 
 
 

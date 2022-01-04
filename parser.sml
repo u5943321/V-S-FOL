@@ -162,7 +162,17 @@ fun term_from_pt env pt =
             end
           | pVar(n,ps) => mk_var (n,sort_from_ps env ps) 
           | pFun(f,ps,ptl) => 
-            mk_fun f (List.map (term_from_pt env) ptl)
+            let val tl0 = List.map (term_from_pt env) ptl
+                val ft0 = mk_fun f tl0
+            in case Binarymap.peek(!abbrdict,f) of 
+                   NONE => ft0
+                 | SOME (abf,tl1,tl2) => 
+                   let val tenv = (match_tl essps tl1 tl0 emptyvd)
+                                      (*should I use if "can" here,if can (match_tl essps tl tl0 emptyvd) then... instead? *)
+                   in  mk_fun abf (List.map (inst_term tenv) tl2)
+                   end
+                   handle _ => ft0
+            end
           | pAnno(pt,ps) => term_from_pt env pt
     else 
         raise

@@ -1340,6 +1340,22 @@ e0
  “!A B f:A~>B C g:B~> C. asR(g) o asR(f) = asR(o1(g,f))”));
 
 
+val asF_asR = prove_store("asF_asR",
+e0
+(rpt strip_tac >> irule fun_ext0 >> 
+ qsspecl_then [‘f’] assume_tac asR_Fun >>
+ strip_tac >> drule asF_App >> arw[] >>
+ rw[asR_def])
+(form_goal
+ “!A B f:A~>B. asF(asR(f)) =f”));
+
+val asR_asF = prove_store("asR_asF",
+e0
+(rpt strip_tac >> irule $ iffRL R_EXT >>
+ rw[asR_def] >> drule asF_App >> arw[])
+(form_goal
+ “!A B f:A->B. isFun(f) ==> asR(asF(f)) =f”));
+
 val asF_o1 = prove_store("asF_o1",
 e0
 (rpt strip_tac >> irule fun_ext0 >> strip_tac >>
@@ -1360,22 +1376,6 @@ e0
  drule Holds_Eval >> arw[])
 (form_goal
  “!A B f:A~>B a. Eval(asR(f),a) = App(f,a)”));
-
-val asF_asR = prove_store("asF_asR",
-e0
-(rpt strip_tac >> irule fun_ext0 >> 
- qsspecl_then [‘f’] assume_tac asR_Fun >>
- strip_tac >> drule asF_App >> arw[] >>
- rw[asR_def])
-(form_goal
- “!A B f:A~>B. asF(asR(f)) =f”));
-
-val asR_asF = prove_store("asR_asF",
-e0
-(rpt strip_tac >> irule $ iffRL R_EXT >>
- rw[asR_def] >> drule asF_App >> arw[])
-(form_goal
- “!A B f:A->B. isFun(f) ==> asR(asF(f)) =f”));
 
 val asR_eq_eq = prove_store("asR_eq_eq",
 e0
@@ -1438,6 +1438,22 @@ val Pf_def = Pf_ex |> rewr_rule[isPr_def]
                    |> uex_expand |> ex2fsym0 "Pf" ["f","g"] 
                    |> gen_all
 
+val App_asF_Eval = prove_store("App_asF_Eval",
+e0
+(rpt strip_tac >> drule asF_def >> arw[] >>
+ drule Holds_Eval >> arw[])
+(form_goal
+ “!A B f:A->B. isFun(f) ==> !a.App(asF(f), a) = Eval(f,a)”));
+
+
+val App_Eval_asR = prove_store("App_Eval_asR",
+e0
+(rpt strip_tac >> rw[GSYM asR_def] >> irule Holds_Eval >>
+ rw[asR_Fun])
+(form_goal
+ “!A B f:A~>B. !a.App(f, a) = Eval(asR(f),a)”));
+
+
 val pi1_of_Pair = prove_store("pi1_of_Pair",
 e0
 (rpt strip_tac >> rw[GSYM pi1_def] >> qspecl_then [‘A’,‘B’] assume_tac p1_Fun >> drule App_asF_Eval >> arw[] >> rw[Eval_p1_Pair])
@@ -1488,21 +1504,6 @@ e0
  “!X x:mem(X) A t. isFun(t) ==> ?!f. isFun(f) & 
   Eval(f,Nil(A)) = x &
   !a l. Eval(f,CONS(a,l)) = Eval(t,Pair(a,Eval(f,l)))”));
-
-val App_asF_Eval = prove_store("App_asF_Eval",
-e0
-(rpt strip_tac >> drule asF_def >> arw[] >>
- drule Holds_Eval >> arw[])
-(form_goal
- “!A B f:A->B. isFun(f) ==> !a.App(asF(f), a) = Eval(f,a)”));
-
-
-val App_Eval_asR = prove_store("App_Eval_asR",
-e0
-(rpt strip_tac >> rw[GSYM asR_def] >> irule Holds_Eval >>
- rw[asR_Fun])
-(form_goal
- “!A B f:A~>B. !a.App(f, a) = Eval(asR(f),a)”));
 
 
 val List_rec_fun = prove_store("List_rec_fun",
@@ -1737,10 +1738,42 @@ e0
 (form_goal
  “!A. TL(Nil(A)) = Nil(A) & !a:mem(A) l.TL(CONS(a,l)) = l”));
 
+(*Rel is still useful when want to prove well-defined*)
+
+val m2r_ex = prove_store("m2r_ex",
+e0
+(cheat)
+(form_goal
+ “!A B m:mem(Exp(A,B)). ?f:A->B. isFun(f) & !a b. Holds(f,a,b) <=> 
+  b = Eval(Ev(A,B),Pair(a,m)) ”));
+
+val m2r_def = m2r_ex |> spec_all |> ex2fsym0 "m2r" ["m"]
+                     |> gen_all |> store_as "m2r_def";
+
+val Ro_ex = prove_store("Ro_ex",
+e0
+(cheat)
+(form_goal
+ “!B C f:C->B. isFun(f) ==> !A.?f1:Exp(B,A) -> Exp(C,A). isFun(f1) &
+  !b2a c2a. Holds(f1,b2a,c2a) <=> 
+  c2a = Tpm(m2r(b2a) o f)”)); 
+
+val Ro_def = Ro_ex |> spec_all |> undisch |> spec_all 
+                   |> ex2fsym0 "Ro" ["f","A"] |> gen_all
+                   |> disch_all |> gen_all
+
+
+val FrN_ex = prove_store("FrN_ex",
+e0
+()
+(form_goal
+ “!X f:X~>X. ?frn:N~>X.”));
+
+val nth_def = Nind_def |> qspecl [‘A’,‘Ro(Tl0(A),A)’]
 (*
 
 val nth_def = Thm1_fun |> qspecl [‘1’,‘Exp(List(A),A)’,
-                                   ‘asF(Tp1(asR(Hd(A))))’,
+                                   ‘asF(Tp1(asR(Hd(A))))’],
                                    ‘o1(,Tl(A))’]
 
 [‘List(A)’,‘A’,‘Hd(A)’,‘’]
