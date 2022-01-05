@@ -672,11 +672,7 @@ datatype form_view =
   | vQ of string * string * sort * form
   | vPred of string * bool * term list
 
-(*
-fun dest_t (n,s) t = 
-    case t of 
 
-*)
 
 local exception CLASH
 in

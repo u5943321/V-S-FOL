@@ -68,7 +68,9 @@ fun ppterm ss g t =
             else
             add_string f >> paren (pr_list (ppterm ss g) (add_string "," >> add_break (1,0)) [t1,t2])
       | vFun(f,s,args) => 
-        (case Binarymap.peek(!unabbrdict,f) of 
+        if length args = 0 then add_string f else
+        add_string f >> paren (pr_list (ppterm ss g) (add_string "," >> add_break (1,0)) args)
+        (*case Binarymap.peek(!unabbrdict,f) of 
             NONE =>
             if length args = 0 then add_string f else
             add_string f >> paren (pr_list (ppterm ss g) (add_string "," >> add_break (1,0)) args)
@@ -80,7 +82,7 @@ fun ppterm ss g t =
             end
             handle _  => 
                    if length args = 0 then add_string f else
-                   add_string f >> paren (pr_list (ppterm ss g) (add_string "," >> add_break (1,0)) args))
+                   add_string f >> paren (pr_list (ppterm ss g) (add_string "," >> add_break (1,0)) args)*)
       | vB i => add_string "B" >> paren (add_string (int_to_string i))
 and ppsort g s =
     case dest_sort s of 

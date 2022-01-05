@@ -259,10 +259,10 @@ e0
  >-- (first_assum $ drule o iffLR >> pop_assum strip_assume_tac >>
      last_assum drule >> 
      first_assum $ irule o iffRL >>
-     qexists_tac ‘CONS(a',l'')’ >> strip_tac
-     >-- first_assum (qspecl_then [‘a'’] accept_tac) >>
+     qexists_tac ‘CONS(a,l'')’ >> strip_tac
+     >-- first_assum (qspecl_then [‘a’] accept_tac) >>
      qsuff_tac
-     ‘sof(CONS(a', l'')) = Ins(Pair(CARD(sof(l'')), a'), sof(l''))’
+     ‘sof(CONS(a, l'')) = Ins(Pair(CARD(sof(l'')), a), sof(l''))’
      >-- (qpick_x_assum ‘sof(l'') = l'’ (mp_tac o GSYM) >>
          pop_assum_list (map_every (K all_tac)) >> rpt strip_tac >>
          arw[]) >>
@@ -422,9 +422,9 @@ val CONS_or_Nil = prove_store("CONS_or_Nil",
 e0
 (strip_tac >> irule l >> rw[] >>
  rpt strip_tac >--
- (rw[CONS_NOTNIL] >> qexistsl_tac [‘a’,‘l'’] >> rw[]) >>
+ (rw[CONS_NOTNIL] >> qexistsl_tac [‘a’,‘l’] >> rw[]) >>
  rw[CONS_NOTNIL] >> 
- qexistsl_tac [‘a’,‘l'’] >> arw[])
+ qexistsl_tac [‘a’,‘l’] >> arw[])
 (form_goal
  “!A l:mem(List(A)). l = Nil(A) | ?a0 l0. l = CONS(a0,l0)”));
 end
@@ -503,10 +503,10 @@ e0
      once_arw[] >> rw[Pair_def'] >> 
      rpt strip_tac >> first_x_assum drule >>
      qpick_x_assum
-     ‘!a. Holds(P, Fst(a), Snd(a)) <=> IN(a, s)’ (assume_tac o GSYM) >>
+     ‘!a1. Holds(P, Fst(a1), Snd(a1)) <=> IN(a1, s)’ (assume_tac o GSYM) >>
      once_arw[] >> rw[Pair_def'] >> once_arw[]) >>
  qpick_x_assum
-     ‘!a. Holds(P, Fst(a), Snd(a)) <=> IN(a, s)’ (assume_tac o GSYM) >> 
+     ‘!a1. Holds(P, Fst(a1), Snd(a1)) <=> IN(a1, s)’ (assume_tac o GSYM) >> 
   once_arw[] >> rw[Pair_def'] >> 
  first_x_assum accept_tac
  )
@@ -604,8 +604,8 @@ e0
  >-- rw[Rf_property]
  >-- (drule Rf_CONS >> arw[]) >>
  qsspecl_then [‘l’] strip_assume_tac CONS_or_Nil >-- (* 2 *)
- (fs[CONS_eq_eq] >> qexists_tac ‘x0'’ >> arw[]) >>
- fs[CONS_eq_eq] >> qexists_tac ‘x0'’ >> arw[]
+ (fs[CONS_eq_eq] >> qexists_tac ‘x0’ >> arw[]) >>
+ fs[CONS_eq_eq] >> qexists_tac ‘x0’ >> arw[]
 )
 (form_goal
  “!X x A t:A * X ->X l0 x0. Holds(Rf(x,t),l0,x0) ==>
@@ -884,11 +884,11 @@ in
 val LESS_ADD_NONZERO = prove_store("LESS_ADD_NONZERO",
 e0
 (strip_tac >> match_mp_tac l >> rw[Suc_def] >> 
-rpt strip_tac >> cases_on “n' = O” 
+rpt strip_tac >> cases_on “n = O” 
  >-- arw[Add_Suc,Add_O,Lt_Suc] >>
  first_x_assum drule >>
  rw[Add_Suc] >> irule Lt_trans >>
- qexists_tac ‘Add(m,n')’ >> arw[Lt_Suc])
+ qexists_tac ‘Add(m,n)’ >> arw[Lt_Suc])
 (form_goal
  “!m n. ~(n = O) ==> Lt(m,Add(m,n))”));
 end

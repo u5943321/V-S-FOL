@@ -254,10 +254,10 @@ e0
  ”));
 
 
-
+(*
 val FINITE_def = new_ax 
 “!X. FINITE(X) <=> isFinite(X) o Tp1(True(X)) =TRUE”
-
+*)
 
 val isFinite_Empty = prove_store("isFinite_Empty",
 e0
@@ -1012,7 +1012,11 @@ e0
  (qexists_tac 
  ‘Or(And(isFinite(X) o p1(Exp(X,1+1),N),
          hasCard(X)),
-     And(NEG o isFinite(X) o p1(Exp(X,1+1),N),Eq(N) o Pa(p2(Exp(X,1+1),N),O o To1(Exp(X,1+1) * N))))’
+     And(NEG o isFinite(X) o p1(Exp(X,1+1),N),Eq(N) o Pa(p2(Exp(X,1+1),N),O o To1(Exp(X,1+1) * N))))’ >> 
+ rw[GSYM Or_def,o_assoc,Pa_distr,DISJ_def,GSYM And_def,CONJ_def,Eq_property_TRUE,NEG_def,TRUE_xor_FALSE,one_to_one_id,idR,p12_of_Pa,GSYM FINITE_def]
+(*
+
+
   >--  once_rw[GSYM Or_def] >> once_rw[o_assoc] >>
        once_rw[Pa_distr] >> once_rw[DISJ_def] >>
        once_rw[GSYM And_def] >> once_rw[o_assoc] >>
@@ -1022,7 +1026,7 @@ e0
        once_rw[o_assoc] >> once_rw[NEG_def]>>
        once_rw[TRUE_xor_FALSE] >> 
        once_rw[one_to_one_id] >> rw[idR] >>
-       rw[p12_of_Pa] >> rw[GSYM FINITE_def])  >>
+       rw[p12_of_Pa] >> rw[GSYM FINITE_def] *))  >>
  pop_assum strip_assume_tac >>
  qby_tac
  ‘!xs. ?!n. R o Pa(xs,n) = TRUE’ >--
@@ -1065,7 +1069,9 @@ e0
  (qexists_tac 
  ‘Or(And(isFinite(X) o p1(Exp(X,1+1),N),
          hasCard(X)),
-     And(NEG o isFinite(X) o p1(Exp(X,1+1),N),Eq(N) o Pa(p2(Exp(X,1+1),N),O o To1(Exp(X,1+1) * N))))’
+     And(NEG o isFinite(X) o p1(Exp(X,1+1),N),Eq(N) o Pa(p2(Exp(X,1+1),N),O o To1(Exp(X,1+1) * N))))’ >>
+ rw[GSYM Or_def,o_assoc,Pa_distr,DISJ_def,GSYM And_def,o_assoc,CONJ_def,Eq_property_TRUE,NEG_def,TRUE_xor_FALSE,one_to_one_id,idR,p12_of_Pa,GSYM FINITE_def]
+(*
   >--  once_rw[GSYM Or_def] >> once_rw[o_assoc] >>
        once_rw[Pa_distr] >> once_rw[DISJ_def] >>
        once_rw[GSYM And_def] >> once_rw[o_assoc] >>
@@ -1075,7 +1081,7 @@ e0
        once_rw[o_assoc] >> once_rw[NEG_def]>>
        once_rw[TRUE_xor_FALSE] >> 
        once_rw[one_to_one_id] >> rw[idR] >>
-       rw[p12_of_Pa] >> rw[GSYM FINITE_def])  >>
+       rw[p12_of_Pa] >> rw[GSYM FINITE_def] *))  >>
  pop_assum strip_assume_tac >>
  qby_tac
  ‘!xs. ?!n. R o Pa(xs,n) = TRUE’ >--

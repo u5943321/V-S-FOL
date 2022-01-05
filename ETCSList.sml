@@ -102,7 +102,12 @@ val isList_def = isList_ex |> spec_all |> ex2fsym0 "isList" ["A"]
 
 val isList_property = prove_store("isList_property",
 e0
-(rpt strip_tac >> once_rw[GSYM isList_def] >>
+(rpt strip_tac >>(*
+ rw[GSYM isList_def,GSYM Lists_def,GSYM Tp0_def,o_assoc,Pa_distr,
+    idL,one_to_one_id,idR,BIGINTER_property,GSYM Tp1_def,
+    Ev_of_Tp_el',p12_of_Pa,Ev_of_el,cLists_def,IN_o]
+*)
+ once_rw[GSYM isList_def] >>
  once_rw[GSYM Lists_def] >> 
  once_rw[GSYM Tp0_def] >> once_rw[o_assoc] >>
  once_rw[Pa_distr] >> rw[o_assoc,idL] >>

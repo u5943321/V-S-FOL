@@ -1759,13 +1759,15 @@ e0
 (*
 
  ‘Eq(N) o Pa(SUB o Pa(p33(N,N,N),ADD o Pa(p32(N,N,N),p31(N,N,N))),SUB o Pa(SUB o Pa(p33(N,N,N),p32(N,N,N)),p31(N,N,N)))’ *) >>
-  once_rw[GSYM Pa3_def] >> 
+ rw[GSYM Pa3_def,GSYM p31_def,GSYM p32_def,o_assoc,Pa_distr,
+    Eq_property_TRUE,GSYM p33_def,p12_of_Pa,Sub_def,Add_def]
+ (* once_rw[GSYM Pa3_def] >> 
   once_rw[GSYM p31_def] >> once_rw[GSYM p32_def] >>
   once_rw[o_assoc] >> once_rw[Pa_distr] >>
   once_rw[Eq_property_TRUE] >> 
   once_rw[GSYM p33_def] >>
   rw[o_assoc,p12_of_Pa,Pa_distr] >>
-  rw[Sub_def,Add_def]) >>
+  rw[Sub_def,Add_def] *)) >>
  pop_assum strip_assume_tac >>
  qsuff_tac 
  ‘!a b c. P0 o Pa3(c,b,a) = TRUE’

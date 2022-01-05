@@ -127,8 +127,8 @@ val has_bound_s: sort -> bool
 val bigunion: ('a * 'a -> order) -> 'a set list -> 'a set
 val var_bigunion: (string * sort) set list -> (string * sort) set
 
-val abbrdict: (string, string * (term list) * (term list)) Binarymap.dict ref
-val unabbrdict: (string, string * (term list) * (term list)) Binarymap.dict ref
-val new_abbr: string -> string * term list * term list -> unit
+val abbrdict: (string * (term list), string * (term list)) Binarymap.dict ref
+val unabbrdict: (string * (term list), string * (term list)) Binarymap.dict ref
+val new_abbr: string * term list -> string * term list -> unit
 end
 

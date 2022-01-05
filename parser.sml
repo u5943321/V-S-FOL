@@ -149,6 +149,7 @@ fun chasevars ps env =
 
 fun term_from_pt env pt = 
     let val sn = hd (ground_sorts (!SortDB))
+        val abbrs = Binarymap.listItems(!unabbrdict)
     in
     if on_ground sn then
         case (chasevart pt env) of 
@@ -164,15 +165,28 @@ fun term_from_pt env pt =
           | pFun(f,ps,ptl) => 
             let val tl0 = List.map (term_from_pt env) ptl
                 val ft0 = mk_fun f tl0
-            in case Binarymap.peek(!abbrdict,f) of 
+            in 
+                case List.find
+                    (fn (ftl,abftl) =>
+                        fst ftl = f andalso
+                        can (fn ts => match_tl essps ts tl0 emptyvd)
+                            (snd ftl))
+                    abbrs 
+                 of SOME (ftl,abftl) => 
+                    mk_fun (fst abftl) 
+                   (List.map (inst_term (match_tl essps (snd ftl) tl0 emptyvd)) (snd abftl))
+                  | NONE => ft0
+            end
+(*
+case Binarymap.peek(!unabbrdict,f) of 
                    NONE => ft0
                  | SOME (abf,tl1,tl2) => 
                    let val tenv = (match_tl essps tl1 tl0 emptyvd)
-                                      (*should I use if "can" here,if can (match_tl essps tl tl0 emptyvd) then... instead? *)
+                                     
                    in  mk_fun abf (List.map (inst_term tenv) tl2)
                    end
                    handle _ => ft0
-            end
+            end *)
           | pAnno(pt,ps) => term_from_pt env pt
     else 
         raise

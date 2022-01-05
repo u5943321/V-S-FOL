@@ -417,16 +417,12 @@ fun ill_formed_fv (n,s) =
     case dest_sort s of (_,tl) => 
                         List.exists is_bound tl
 
-val abbrdict0: (*(term,term) Binarymap.dict = 
-Binarymap.mkDict term_compare
-*)
-
-(*if use strings, then "1+1" are abbrev to be 2, but 2 + 2, or any other coproduct, cannot have abbrev, since it is occupied *)
- (string, string * (term list) * (term list)) Binarymap.dict = Binarymap.mkDict String.compare
+val abbrdict0: 
+ (string * (term list), string * (term list)) Binarymap.dict = Binarymap.mkDict (pair_compare String.compare (list_compare term_compare))
 
 val abbrdict = ref abbrdict0
 
-val unabbrdict0: (string, string * (term list) * (term list)) Binarymap.dict = Binarymap.mkDict String.compare
+val unabbrdict0: (string * (term list), string * (term list)) Binarymap.dict = Binarymap.mkDict (pair_compare String.compare (list_compare term_compare))
 
 val unabbrdict = ref unabbrdict0
 
@@ -439,9 +435,12 @@ or handle error once the matching fails.
 
 *)
 
-fun new_abbr f (abf,tl1,tl2) =
-    let val _  = abbrdict := Binarymap.insert(!abbrdict,f,(abf,tl1,tl2))
-val _ =  unabbrdict := Binarymap.insert(!unabbrdict,abf,(f,tl2,tl1))
+fun new_abbr (f,tl) (abf,tl') =
+    let 
+        val _ = abbrdict :=
+                Binarymap.insert(!abbrdict,(f,tl),(abf,tl'))
+        val _ = unabbrdict := 
+                Binarymap.insert(!unabbrdict,(abf,tl'),(f,tl))
 in () end
 
 
@@ -453,17 +452,20 @@ in () end
 “!f:2 ->A. T”
 val _ = new_fun "2" (ob_sort,[])
 
-val _ = new_abbr "2" ("+",[],[rastt "1",rastt "1"])
+val _ = new_abbr ("+",[rastt "1",rastt "1"]) ("2",[]) 
 
 
 val _ = new_fun "Pow" (ob_sort,[("X",ob_sort)])
 
 "Pow" ("Exp",[rastt "X"],[rastt "X",rastt "1 * 1"])
 
-val _ = new_abbr "Pow" ("Exp",[rastt "X"],[rastt "X",rastt "1 + 1"])
+val _ = new_abbr ("Exp",[rastt "X",rastt "1 + 1"]) ("Pow",[rastt "X"]) 
 
  "Exp" ("Pow",[rastt "X",rastt "1+1"],[rastt "X"])
 *)
+
+
+
 
 
 end

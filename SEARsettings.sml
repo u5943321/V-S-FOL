@@ -3338,3 +3338,69 @@ val Fst_def = Fst_ex |> spec_all |> ex2fsym0 "Fst" ["x"]
 val Snd_def = Snd_ex |> spec_all |> ex2fsym0 "Snd" ["x"]
 
 val Pair_def' = Pair_def |> rewr_rule[Fst_def,Snd_def]
+
+
+(*
+val nPr_def = define_pred
+“!A n An. nPr(A,n,An) <=>
+ ?ps: N -> Exp(An,A). isFun(ps) & 
+ !k. Lt(k,n) ==> ?pnk:An ->A. ”
+*)
+
+val _ = new_pred "T" [];
+val _ = new_pred "F" [];
+
+fun mk_foralls nsl f = 
+    case rev nsl of 
+        [] => f
+      | (h as (n,s)) :: t =>
+        mk_forall n s (mk_foralls t f)
+
+fun define_pred f = 
+    let val fvs = fvf f
+        val _ = HOLset.isEmpty fvs orelse 
+                raise simple_fail
+                      "formula has unexpected free variables"
+        val (body,bvs) = strip_forall f 
+        val (l,r) = dest_dimp body 
+        val (P,args) = dest_fvar l 
+        val _ = List.all is_var args orelse raise simple_fail"input arguments is not a variable list"
+        val _ = HOLset.isSubset (fvf r,fvf l) 
+                orelse raise simple_fail"unexpected free variable on RHS"
+        val _ = new_pred P (List.map dest_var args)
+        val l' = mk_pred P args
+        val f' = mk_foralls bvs (mk_dimp l' r)
+    in mk_thm(essps,[],f')
+    end 
+
+
+val Eqv_def = define_pred
+“!A B. Eqv(A,B) <=> ?f:A->B. isBij(f)”
+
+(*member of pow as set*)
+
+val Asset_def = define_pred
+“!B bs:mem(Pow(B)) B0. Asset(bs,B0) <=> 
+ !B1 i:B1->B. 
+ isInj(i) & 
+ (!b. (?b0:mem(B1). Eval(i,b0) = b) <=> IN(b,bs)) ==> 
+ Eqv(B0,B1)”
+
+
+val nPow_def = define_pred
+“!B n Pn. nPow(B,n,Pn) <=> 
+ ?C f:N->Pow(C). isFun(f) &
+    (!C0. Asset(Eval(f,O),C0) ==> Eqv(C0,B)) &
+    (!k Ck Csk. 
+      Lt(k,n) &
+      Asset(Eval(f,O),Ck) & Asset(Eval(f,O),Csk) ==>
+      Eqv(Csk,Pow(Ck))) & 
+    (!Cn. Asset(Eval(f,n),Cn) ==> Eqv(Cn,Pn))”
+
+val AX5 = store_ax("AX5",
+“!A.?B p:B->A Y M:B->Y.  
+ (!b Mb.
+     (?i:Mb->Y. Inj(i) & 
+                !y. (?y0. Eval(i,y0) = y) <=> Holds(M,b,y))
+     ==> P(Eval(p,b),Mb)) & 
+ !a:mem(A) X. P(a,X) ==> ?b. Eval(p,b) = a”)
