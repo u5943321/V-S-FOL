@@ -63,8 +63,8 @@ val dest_fun: term -> string * sort * term list
 val dest_var: term -> string * sort
 
 
-val replaces: term * term -> sort -> sort
-val replacet: term * term -> term -> term
+val replaces: int * term -> sort -> sort
+val replacet: int * term -> term -> term
 
 val substs: (string * sort) * term -> sort -> sort
 val substt: (string * sort) * term -> term -> term 
@@ -130,5 +130,15 @@ val var_bigunion: (string * sort) set list -> (string * sort) set
 val abbrdict: (string * (term list), string * (term list)) Binarymap.dict ref
 val unabbrdict: (string * (term list), string * (term list)) Binarymap.dict ref
 val new_abbr: string * term list -> string * term list -> unit
+
+
+exception CLASH
+val dest_s: string * sort -> sort * int -> sort
+val dest_t: string * sort -> term * int -> term
+
+
+
+val vreplaces: int * (string * sort) -> sort -> sort
+val vreplacet: int * (string * sort) -> term -> term
 end
 

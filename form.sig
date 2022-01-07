@@ -103,5 +103,6 @@ val dest_quant0: form -> string * string * sort * form
 val dest_forall0: form -> (string * sort) * form
 val dest_exists0: form -> (string * sort) * form
 val dest_uex0: form -> (string * sort) * form
+val dest_f: form -> (string * sort) * form
 end
 

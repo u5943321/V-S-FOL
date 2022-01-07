@@ -164,7 +164,6 @@ fun term_from_pt env pt =
           | pVar(n,ps) => mk_var (n,sort_from_ps env ps) 
           | pFun(f,ps,ptl) => 
             let val tl0 = List.map (term_from_pt env) ptl
-                val ft0 = mk_fun f tl0
             in 
                 case List.find
                     (fn (ftl,abftl) =>
@@ -175,7 +174,7 @@ fun term_from_pt env pt =
                  of SOME (ftl,abftl) => 
                     mk_fun (fst abftl) 
                    (List.map (inst_term (match_tl essps (snd ftl) tl0 emptyvd)) (snd abftl))
-                  | NONE => ft0
+                  | NONE => mk_fun f tl0
             end
 (*
 case Binarymap.peek(!unabbrdict,f) of 

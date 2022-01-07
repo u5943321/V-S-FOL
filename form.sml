@@ -33,10 +33,11 @@ fun wrap_err s exn =
 
 (*edit same code of pred and fvar*)
 fun subst_bound t = 
-    let fun subst i (Pred(a,b,ts)) = Pred(a, b,List.map (replacet (mk_bound i, t)) ts) 
+    let fun subst i (Pred(a,b,ts)) = 
+            Pred(a, b,List.map (replacet (i, t)) ts) 
           | subst i (Conn(b,As)) = Conn(b, List.map (subst i) As) 
           | subst i (Quant(q,n,s,b)) =
-            Quant(q, n, replaces (mk_bound (i + 1),t) s, subst (i+1) b)
+            Quant(q, n, replaces (i,t) s, subst (i+1) b)
     in subst 0 end
 
 
@@ -51,7 +52,7 @@ fun abstract t =
     let fun abs i (Pred(a,b,ts)) = Pred(a,b, List.map (substt (t,mk_bound i)) ts) 
           | abs i (Conn(b,As)) = Conn(b, List.map (abs i) As) 
           | abs i (Quant(q,b,s,A)) = 
-            Quant(q, b, substs (t, mk_bound (i + 1)) s, abs (i+1) A)
+            Quant(q, b, substs (t, mk_bound (i)) s, abs (i+1) A)
     in abs 0 end;
 
 
@@ -210,13 +211,26 @@ fun dest_exists f =
       | _ => raise ERR ("not an existantial: ",[],[],[f])
 
 
-fun dest_forall f = 
-    case f of 
-        Quant("!",n,s,b) =>
-        let val ns' = dest_var (pvariantt (fvf f) (mk_var(n,s)))
-        in (ns',subst_bound (mk_var ns') b)
-        end
-      | _ => raise ERR ("not a universal",[],[],[f])
+fun dest_f (Quant(q,n,s,b)) = 
+let fun dest (f,i) =
+    case f of
+        Pred(P,bl,tl) => 
+        Pred(P,bl,List.map (fn t => dest_t (n,s) (t,i)) tl)
+      | Conn("~",[f0]) => 
+        Conn("~",[dest (f0,i)])
+      | Conn(co,[f1,f2]) => 
+        Conn(co,[dest (f1,i),dest (f2,i)])
+      | Quant(q0,n0,s0,b0) => Quant(q0,n0,s0,dest (subst_bound (mk_var(n,s)) b0,i+1))
+      | _ => raise ERR ("dest.ill-formed formula",[],[],[])
+in ((n,s),dest(b,0))
+   handle CLASH =>
+          let val (n1,s1) = 
+                  dest_var (pvariantt (fvf b) (mk_var (n,s)))
+          in dest_f (Quant(q,n1,s1,b))
+          end
+end
+  | dest_f _ = raise ERR ("dest_f.not a quantification",[],[],[])
+
 
 fun dest_uex f = 
     case f of 
@@ -692,6 +706,41 @@ fun dest_forall f =
     end
 end
 
+
+
+local 
+(*
+fun vreplacet (i,(n,s)) t = 
+    case view_term t of 
+        vVar(n0,s0) => if n0 = n then raise CLASH else 
+                       replacet (i,mk_var(n,s)) t
+      | vFun(f,s0,tl0) => 
+        mk_fun f (List.map (vreplacet(i,(n,s))) tl0)
+      | vB j => if i = j then mk_var(n,s) else t
+and vreplaces (i,ns) s = 
+    case view_sort s of 
+        vSrt (name,tl) => 
+        mk_sort name (List.map (vreplacet (i,ns)) tl)
+*)
+fun vsubst_bound ns =  
+    let fun vsubst i (Pred(a,b,ts)) = 
+            Pred(a, b,List.map (vreplacet (i, ns)) ts) 
+          | vsubst i (Conn(b,As)) = Conn(b, List.map (vsubst i) As) 
+          | vsubst i (Quant(q,n,s,b)) =
+            Quant(q, n, vreplaces (i,ns) s, vsubst (i+1) b)
+    in vsubst 0 end
+in
+fun dest_forall f = 
+    (case f of 
+        Quant("!",n,s,b) =>
+        (((n,s),vsubst_bound (n,s) b)
+        handle CLASH  =>
+        let val ns' = dest_var (pvariantt (fvf f) (mk_var(n,s)))
+        in (ns',vsubst_bound ns' b)
+        end)
+      | _ => raise ERR ("not a universal",[],[],[f]))
+end
+
 (*think doing it the HOL way*)
 
 fun view_form f =
@@ -725,5 +774,7 @@ fun dest_uex0 f =
       | _ => raise ERR ("dest_uex0.not a unique exists",[],[],[f])
 
 
+val _ = new_pred "T" [];
+val _ = new_pred "F" [];
 
 end

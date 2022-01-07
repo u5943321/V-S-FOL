@@ -132,6 +132,28 @@ fun match_mp_tac th (ct:cont,asl:form list,w) =
 
 
 (*
+val (ct,asl,w) = cg $ 
+e0
+(rpt strip_tac >> rw[isPb_expand] >>
+ qspecl_then [‘X * Y’,‘Z’,‘f o p1(X,Y)’,‘g o p2(X,Y)’] (x_choosel_then ["E","e"] assume_tac) isEq_ex >>
+ qexistsl_tac [‘E’,‘p1(X,Y) o e’,‘p2(X,Y) o e’] >>
+ qby_tac
+ ‘f o p1(X, Y) o e = g o p2(X, Y) o e’
+ >-- (rw[GSYM o_assoc] >> irule Eq_equality >> arw[]) >>
+ arw[] >> rpt strip_tac >>
+ qexists_tac ‘Eqa(f o p1(X,Y), g o p2(X,Y),e,Pa(u,v))’ >>
+ rw[o_assoc] >>
+ qby_tac
+ ‘e o Eqa(f o p1(X, Y), g o p2(X, Y), e, Pa(u, v)) = 
+  Pa(u,v)’ >--
+ (flip_tac >> irule Eqa_eqn >> arw[o_assoc,p12_of_Pa]) >>
+ arw[p12_of_Pa] >> rpt strip_tac >>
+ drule Eqa_Mono >> fs[Mono_def] >> first_x_assum irule)
+(form_goal
+ “!X Z f:X->Z Y g:Y->Z. ?P p:P->X q. isPb(f,g,p,q)”);
+
+*)
+(*
 
 A ==> !x. C x
 ---

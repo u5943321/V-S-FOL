@@ -9,6 +9,8 @@ and term =
 
 exception TER of string * sort list * term list
 
+exception CLASH
+
 fun mk_sort str tl = srt (str,tl)
 
 (*Any point of not put the line about in the sig?*)
@@ -119,15 +121,30 @@ fun srt2ns st =
     end
 
 
-fun replacet (u,new) t = 
-    if t=u then new else 
+fun replacet (i,new) t = 
+    if t=Bound i then new else 
     case t 
      of Fun(f,s,tl) => 
-        Fun(f,replaces (u,new) s, List.map (replacet(u,new)) tl) 
-      | _=> t
-and replaces (u,new) s = 
+        Fun(f,replaces (i,new) s, List.map (replacet(i,new)) tl) 
+      | Var(n,s) => Var(n,replaces (i,new) s)
+      | _ => t
+(*      | _ => t *)
+and replaces (i,new) s = 
     case s of 
-        srt (name,tl) => srt (name, List.map (replacet (u,new)) tl)
+        srt (name,tl) => srt (name, List.map (replacet (i,new)) tl)
+
+fun vreplacet (i,(n,s)) t = 
+    case t of 
+        Var(n0,s0) => if n0 = n then raise CLASH else 
+                       Var(n0,vreplaces (i,(n,s)) s0)
+      | Fun(f,s0,tl0) => 
+        Fun(f,vreplaces(i,(n,s)) s0,
+            List.map (vreplacet(i,(n,s))) tl0)
+      | Bound j => if i = j then mk_var(n,s) else t
+and vreplaces (i,ns) s = 
+    case s of 
+        srt (name,tl) => 
+        srt (name,List.map (vreplacet (i,ns)) tl)
 
 fun eq_term (t1,t2) = 
     case (t1,t2) of 
@@ -465,7 +482,17 @@ val _ = new_abbr ("Exp",[rastt "X",rastt "1 + 1"]) ("Pow",[rastt "X"])
 *)
 
 
-
+fun dest_t (n,s) (t,i) = 
+    case t of 
+        Bound j => if i = j then mk_var(n,s) else t
+      | Var(m,st) => if n = m then raise CLASH 
+                     else Var(m,dest_s (n,s) (st,i))
+      | Fun(f,st,tl) => Fun(f,dest_s (n,s) (st,i),
+                            List.map (fn t => dest_t (n,s) (t,i)) tl)
+and dest_s (n,s) (st,i) = 
+    case st of
+        srt(sname,tl) => 
+        srt(sname,List.map (fn t => dest_t (n,s) (t,i)) tl)
 
 
 end

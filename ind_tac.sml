@@ -151,7 +151,10 @@ val psym2IL = inserts (Binarymap.mkDict String.compare)
  ("HasCard",(rastt "hasCard(X)",
              [("xs",ar_sort (mk_ob "A") (rastt "Exp(X,1+1)")),
               ("n",ar_sort (mk_ob "A") N)])),
- ("Even",(rastt "EVEN",[]))]
+ ("Even",(rastt "EVEN",[])),
+ ("IN",(rastt "Mem(X)",
+        [("x",ar_sort (mk_ob "A") (mk_ob "X")),
+         ("xs",ar_sort (mk_ob "A") (rastt "Exp(X,1+1)"))]))]
 
 (*
 form2IL [dest_var $ rastt "xs:1->Exp(X,1+1)",dest_var $ rastt "n:1->N"]
