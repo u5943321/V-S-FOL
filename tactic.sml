@@ -75,7 +75,7 @@ fun drule0 optfn  th (G,fl:form list,f) =
         val (ant',con) = dest_imp b
         fun mfn _ asm = 
             let 
-                val menv = match_form (fvfl (ant th)) ant' asm mempty
+                val menv = match_form (fvfl (ant th)) (HOLset.empty String.compare) ant' asm mempty
                 val ith = inst_thm menv (spec_all th)
             in
                 SOME (mp ith (assume asm))
@@ -122,7 +122,7 @@ fun match_mp_tac th (ct:cont,asl:form list,w) =
         val (vs,evs) = partition (fn v => HOLset.member(fvf con,v)) gvs
         val th2 = uncurry disch (itlist efn evs (ant, th1)) 
         val (gl,vs) = strip_forall w
-        val env = match_form (fvfl (hyp th)) con gl mempty
+        val env = match_form (fvfl (hyp th)) (HOLset.empty String.compare) con gl mempty
         val ith = inst_thm env th2
         val gth = genl vs (undisch ith)
         val ant = fst (dest_imp (concl ith))

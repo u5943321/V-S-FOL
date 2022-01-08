@@ -1078,7 +1078,7 @@ fun qmatch_parse0 ct fq fl =
 fun match_parse ct fl fq = 
     let val f0 = parse_form_with_cont ct fq
         fun mfn _ asm = 
-            let val menv = match_form essps f0 asm mempty
+            let val menv = match_form essps (HOLset.empty String.compare) f0  asm mempty
             in SOME asm
                     (*only care about the fact that it can match, do not care about the menv, what to write in this case?*)
             end

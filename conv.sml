@@ -91,9 +91,11 @@ fun top_depth_conv conv tm =
 val simp_trace = ref false
 
 
+
+
 fun part_fmatch partfn th f = 
     let 
-        val fvd = match_form (fvfl (ant th)) (partfn th) f mempty
+        val fvd = match_form (fvfl (ant th)) (fVarsl (ant th)) (partfn th) f mempty
     in 
         inst_thm fvd th
     end
@@ -144,7 +146,7 @@ fun repeatfc fc f =
 
 fun pred_fconv c f = 
     case view_form f of 
-        vPred (P,true,tl) => EQ_psym P (List.map c tl)
+        vPred (P,_,tl) => EQ_psym P (List.map c tl)
       | _ => raise ERR ("pred_fconv.not a predicate",[],[],[f])
 
 (*conv on subformulas*)
@@ -518,13 +520,15 @@ val ASSUME_CONJUNCT_LEMMA =
         mk_thm (essps,[],f0)
     end
 
-
+(*
 fun part_fmatch partfn th f = 
     let 
-        val fvd = match_form (fvfl (ant th)) (partfn th) f mempty
+        val fvd = match_form (fvfl (ant th)) (HOLset.empty String.compare) (partfn th) f mempty
     in 
         inst_thm fvd th
     end
+
+*)
 
 
 fun ASSUME_CONJUNCT_RULE th1 th2 = 

@@ -55,6 +55,8 @@ fun pos n l =
         [] => raise simple_fail "pos.not a list member"
       | h :: t => if h = n then 1 else (pos n t) + 1
 
+
+(*
 p11(A) = id(A)
 
 form2IL [dest_var $ rastt "n:1->N"]
@@ -76,6 +78,8 @@ t1
 val (f,s,tl) = dest_fun t1
 
 term2IL bvs (rastt "TRUE") (rastt "P:N->1+1")(hd tl)
+
+*)
 
 fun term2IL bvs t =
     let val doms = List.map (cod o snd) bvs
@@ -154,7 +158,8 @@ val psym2IL = inserts (Binarymap.mkDict String.compare)
  ("Even",(rastt "EVEN",[])),
  ("IN",(rastt "Mem(X)",
         [("x",ar_sort (mk_ob "A") (mk_ob "X")),
-         ("xs",ar_sort (mk_ob "A") (rastt "Exp(X,1+1)"))]))]
+         ("xs",ar_sort (mk_ob "A") (rastt "Exp(X,1+1)"))])),
+ ("Sim",(rastt "relJ",[]))]
 
 (*
 form2IL [dest_var $ rastt "xs:1->Exp(X,1+1)",dest_var $ rastt "n:1->N"]
@@ -164,7 +169,7 @@ keep this example
 *)
 
 
-
+(*
 val f = “!x:1->K.HasCard(xs:1->Exp(X,1+1),n:1->N)” 
 
 val bvs = [dest_var $ rastt "xs:1->Exp(X,1+1)",dest_var $ rastt "n:1->N"]
@@ -193,6 +198,7 @@ val bvs = [dest_var $ rastt "n:1->N"]
 val (_,[t1,t2]) = dest_pred f
 
 t1
+*)
 
 (*if see application P o n, just modify the n to the desired projection
 e.g. m |-> !n. P o n & Q o m 
@@ -214,8 +220,11 @@ e0
  “!A.?p. id(A) = p”));
 
 val p11_def = p11_ex |> spec_all |> ex2fsym0 "p11" ["A"] |> gen_all
+
+(*
 form2IL [dest_var $ rastt "n:1->N"]
 “Even(Suc(n:1->N))” 
+*)
 
 fun form2IL bvs f = 
     case view_form f of 
@@ -225,6 +234,8 @@ fun form2IL bvs f =
         Or (form2IL bvs f1) (form2IL bvs f2)
       | vConn("==>",[f1,f2]) => 
         Imp (form2IL bvs f1) (form2IL bvs f2)
+      | vConn("<=>",[f1,f2]) => 
+        Iff (form2IL bvs f1) (form2IL bvs f2)
       | vPred("=",true,[t1,t2]) =>
         mk_pred_ap (mk_fun "Eq" [cod (sort_of t2)])
          [term2IL bvs t1,term2IL bvs t2]
@@ -244,6 +255,8 @@ fun form2IL bvs f =
       | _ => raise ERR ("form2IL.ill-formed formula",[],[],[f])
 
 
+
+(*
 val _ = new_pred "HasCard" [("xs",ar_sort (mk_ob "A") (rastt "Exp(X,1+1)")),
                             ("n",ar_sort (mk_ob "A") N)]
 
@@ -269,3 +282,4 @@ val bvs = [dest_var (rastt "x:1->K"),dest_var $ rastt "xs:1->Exp(X,1+1)",dest_va
 term2IL bvs (rastt "n:1->N") 
 
 “P o n:1->N = TRUE & Q o n1:1->N = TRUE”
+*)

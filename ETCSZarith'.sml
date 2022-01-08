@@ -1,3 +1,44 @@
+val relJ_ex = prove_store("relJ_ex",
+e0
+(exists_tac $
+ form2IL [dest_var $ rastt "ab:1-> N * N",
+          dest_var $ rastt "cd:1-> N * N"] 
+ “Add(Fst(ab:1-> N * N),Snd(cd)) = Add(Snd(ab),Fst(cd))” >>
+ rw[GSYM p21_def,GSYM p22_def,GSYM Add_def,
+    Eq_property_TRUE,Pa_distr,p12_of_Pa,o_assoc,
+    GSYM Fst_def,GSYM Snd_def])
+(form_goal
+ “?rel:(N * N) * N * N -> 1+1.
+  !ab cd. rel o Pa(ab,cd) = TRUE <=> 
+  Add(Fst(ab),Snd(cd)) = Add(Snd(ab),Fst(cd))”));
+
+val relJ_def = relJ_ex |> ex2fsym0 "relJ" []
+
+val Sim_def = define_pred 
+“!X ab cd. Sim(ab,cd) <=> relJ o Pa(ab,cd) = True(X)”
+
+
+val PZ_ex = prove_store("PZ_ex",
+e0
+(exists_tac $
+ form2IL [dest_var $ rastt "pairs:1->Exp(N* N,1+1)"] 
+ “?ab:1-> N * N. IN(ab,pairs) &
+      (!cd. IN(cd,pairs) <=> Sim(ab,cd))” >>
+ rw[ALL_property,GSYM And_def,CONJ_def,o_assoc,Pa_distr,
+    Eq_property_TRUE,GSYM Iff_def,IFF_def,
+    EX_property] >> 
+ rw[GSYM p21_def,GSYM p22_def,p12_of_Pa] >>
+ rw[p31_of_Pa3,p32_of_Pa3,p33_of_Pa3,Pa3_def,
+    IN_def,Sim_def,True1TRUE])
+(form_goal
+ “?P: Exp(N * N,1+1) -> 1+1.
+  !pairs:1->Exp(N * N,1+1). P o pairs = TRUE <=>
+  (?ab. IN(ab,pairs) &
+      (!cd. IN(cd,pairs) <=> Sim(ab,cd)))”));
+
+
+
+
 val pred_define_Z_ex = prove_store("pred_define_Z_ex",
 e0
 (exists_tac $
@@ -163,6 +204,56 @@ e0
 (form_goal “?adds. Tp(ADDs0) = adds”));
 
 val ADDs_def = ADDs_ex |> ex2fsym0 "ADDs" []
+
+val IN_ADDs = prove_store("IN_ADDs",
+e0
+(rw[GSYM ADDs_def,IN_def,GSYM Mem_def,Ev_of_Tp_el,
+    True1TRUE,ADDs0_def])
+(form_goal
+ “!ps1 ps2 ab:1-> N * N. IN(ab, ADDs o Pa(ps1,ps2)) <=> 
+  ?r1 r2. IN(r1,ps1) & IN(r2,ps2) & Addj(r1,r2) = ab”));
+
+
+(*
+val ADDs_property = prove_store("ADDs_property",
+e0
+(rw[GSYM ADDs_def,IN_def,GSYM Mem_def,Ev_of_Tp_el,
+    True1TRUE,ADDs0_def])
+(form_goal
+ “!ps1 ps2 abs:1-> N * N.
+  ADDs o Pa()
+ IN(ab, ADDs o Pa(ps1,ps2)) <=> 
+  ?r1 r2. IN(r1,ps1) & IN(r2,ps2) & Addj(r1,r2) = ab”));
+*)
+val PZ_def = pred_define_Z
+
+val PZ_refl = prove_store("PZ_refl",
+e0
+()
+(form_goal
+ “!ab:1->N * N. PZ o Pa(ab,ab) = TRUE”));
+
+
+val IN_repZ = prove_store("IN_repZ",
+e0
+()
+(form_goal
+ “!z:1->Z r. IN(r,repZ o z) <=> 
+   (!r'. IN(r',repZ o z) <=> PZ o Pa(r,r') = TRUE)”));
+
+val ADDz_ex = prove_store("ADDz_ex",
+e0
+(dflip_tac >> rw[GSYM Z_def] >>
+ irule FUN_EXT >> strip_tac >>
+ rw[True2TRUE] >> rw[o_assoc,pred_define_Z] >>
+ rw[IN_ADDs,Pa_distr] >> 
+ qsspecl_then [‘a’] strip_assume_tac has_components >>
+ arw[o_assoc,p12_of_Pa] >> rpt strip_tac >>
+ 
+ )
+(form_goal
+ “?addz:Z * Z -> Z. repZ o addz =
+   ADDs o Pa(repZ o p1(Z,Z),repZ o p2(Z,Z))”));
 
 
  “!ADDs:Exp(N * N,1+1) * Exp(N * N,1+1) -> Exp(X,1+1). 

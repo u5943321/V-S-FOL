@@ -2,6 +2,28 @@
 
 (*does not consider same fvar with different sorts of input lists
 maybe add this as a wf condiiton? *)
+
+
+
+
+fun fVar_Inst1 (pair as (P,(argl:(string * sort) list,Q))) f = 
+    case view_form f of
+        vPred(P0,false,args0) =>
+(*ListPair.map ListPair.foldl*)
+(*mk_inst (zip argl args0)ListPair. [] *)
+        if P0 = P then
+            let val venv = match_tl essps (List.map mk_var argl) args0 emptyvd 
+            in inst_form (mk_menv venv emptyfvd) Q
+            end
+(*if the number of arguments is wrong, or the sorts is wrong, then handle the matching exn by returning f *)
+        else f
+      | vConn(co,fl) => mk_conn co (List.map (fVar_Inst1 pair) fl)
+      | vQ(q,n,s,b) => mk_quant q n s (fVar_Inst1 pair b)
+      | vPred (_,true,_) => f
+
+
+
+
 fun fVar_Inst1 (pair as (P,(argl:(string * sort) list,Q))) f = 
     case view_form f of
         vPred(P0,false,args0) =>
@@ -204,13 +226,26 @@ fun fVar_Inst' (P:string,(ssl:(string * sort) list,f)) th =
  once discover that there is a free variable introduced due to inst, rename the free variable so it has a name which is not possible to be captured by a bounded variable, and record the renaming in the list. after the inst, rename the free variable back to the orginal name that it should have.
 
 
-fVar_Inst' ("P",([("y",mem_sort N)],“y = n:mem(N)”))]
+fVar_Inst' ("P",([("y",mem_sort N)],“y = n:mem(N)”))
 (mk_thm(essps,[],“!n:mem(N).P(n)”))
+
+
+fVar_Inst1 ("P",([("y",mem_sort N)],“y = n:mem(N)”))
+“!n:mem(N).P(n)”
+(mk_thm(essps,[],“!n:mem(N).P(n)”))
+
+
+fVar_Inst1 ("P",([("n",mem_sort N)],“y = n:mem(N)”))
+“!n:mem(N).P(n)”
 
 val P = "P"
 val ssl = [("y",mem_sort N)];
 val f = “y = n:mem(N)”
 val th= mk_thm(essps,[],“!n:mem(N).P(n)”)
+
+
+val f = “P(n) <=> y = n”
+val th = mk_thm(fvf f, [], f)
 *)
 
 
@@ -220,7 +255,7 @@ fun fVar_Inst l th =
         [] => th
       | h :: t => fVar_Inst t (fVar_Inst' h th)
 
-
+(*N_ind_P |> rewr_rule [th]*)
 
 
 (*
@@ -240,5 +275,87 @@ val n0 = "a"
 val names = 
  (HOLset.add(HOLset.empty String.compare,"a"))
 
+
+*)(*
+
+val f = “P(n) <=> y = n”
+val th = mk_thm(fvf f, [], f)
+
+(thenfc(rewr_fconv th,rewr_fconv th)) 
+rewr_fconv th “P(m)”
+
+rewr_fconv th “y = m”
+
+top_depth_fconv no_conv (rewr_fconv th) “P(m)”
+
+basic_fconv no_conv (rewr_fconv th) “P(m) & n = y”
+
+rewr_fconv th “P(m)”
+
+
+
+
+val f0 = concl N_ind_P
+
+top_depth_fconv no_conv (rewr_fconv (spec_all th)) f0
+
+top_depth_fconv no_conv (rewr_fconv (spec_all th)) f1
+
+top_depth_fconv no_conv (rewr_fconv (spec_all th)) f2
+
+top_depth_fconv no_conv (rewr_fconv (spec_all th)) f3 
+
+top_depth_fconv no_conv (rewr_fconv (spec_all th)) f4
+
+
+conj_fconv (rewr_fconv (spec_all th)) “P(a:mem(N)) & P(Suc(a))”
+
+sub_fconv no_conv (rewr_fconv (spec_all th)) “P(a:mem(N)) & P(Suc(a))”
+
+
+top_depth_fconv no_conv 
+
+repeatfc
+
+fun fVarsl fl = bigunion String.compare (List.map fVars fl)
+fun part_fmatch partfn th f = 
+    let 
+        val fvd = match_form (fvfl (ant th)) (fVarsl (ant th)) (partfn th) f mempty
+    in 
+        inst_thm fvd th
+    end
+
+fun rewr_fconv th = part_fmatch (fst o dest_dimp o concl) th
+
+
+
+val f = “!n.P(n) <=> Eval(u1:N->X,n) = Eval(u2,n)”
+val th = mk_thm(fvf f,[],f)
+
+
+basic_fconv no_conv (rewr_fconv (add_assum “!n:mem(N). P(n) <=> P(n)” (spec_all th)))
+“P(a:mem(N)) & P(Suc(a))”
+
+
+ “P(a:mem(N))”
+
+“P(a:mem(N)) & P(Suc(a))”
+
+
+wrong 
+
+
+f4 = P(n) ==> P(Eval(SUC, n)): form
+
+# val it =
+   {(X : set), (n : mem(N)), (u1 : rel(N, X)), (u2 : rel(N, X))}, 
+   |- P(n) <=> Eval(u1, n) = Eval(u2, n): thm
+
+
+
+
+ N_ind_P |> rewr_rule[spec_all th]
+
+rewr_fconv (spec_all th) “P(O)”
 
 *)

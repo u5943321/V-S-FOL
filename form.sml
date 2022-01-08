@@ -358,7 +358,7 @@ Q(c:mem(C),d:mem(D))
 (*don;t do the inst above in this function, but need to call other functions to do the inst_sort first*)
 *)
 
-fun match_form nss pat cf env:menv = 
+fun match_form nss ps pat cf env:menv = 
     case (pat,cf) of
         (Pred(P1,true,l1),Pred(P2,true,l2)) => 
         if P1 <> P2 then 
@@ -367,12 +367,16 @@ fun match_form nss pat cf env:menv =
       | (Conn(co1,l1),Conn(co2,l2)) => 
         if co1 <> co2 then 
             raise ERR ("different connectives: ",[],[],[pat,cf])
-        else match_fl nss l1 l2 env
+        else match_fl nss ps l1 l2 env
       | (Quant(q1,n1,s1,b1),Quant(q2,n2,s2,b2)) => 
         if q1 <> q2 then 
             raise ERR ("different quantifiers: ",[],[],[pat,cf])
-        else match_form nss b1 b2 (match_sort' nss s1 s2 env)
+        else match_form nss ps b1 b2 (match_sort' nss s1 s2 env)
       | (Pred (fm,false,[]),_) => 
+        if HOLset.member(ps,fm) then 
+            if eq_form(pat,cf) then env
+            else raise ERR ("match_form.current fvar is local constant",[],[],[pat])
+        else
             (case (lookup_f' env fm) of
                  SOME f => if eq_form(f,cf) then env else
                            raise ERR ("double bind of formula variables",[],[],[pat,f,cf])
@@ -380,6 +384,13 @@ fun match_form nss pat cf env:menv =
  (*P(a) <=> Q(a) match to P(f(a)) gives a|-> f(a), obtains
  P(f(a)) <=> Q(f(a)), if in second clause ,match a to a, useless *)
       | (Pred(fm1,false,args1),cf) => 
+        if HOLset.member(ps,fm1) then 
+            case cf of 
+                Pred(fm',false,args') =>
+                if fm' = fm1 then match_tl' nss args1 args' env
+                else raise ERR ("match_form.current fvar is local constant,attempted to match to other formula variable",[],[],[pat])
+              | _ => raise ERR ("match_form.current fvar is local constant",[],[],[pat])
+        else
         (case cf of 
             Pred(fm2,false,args2) => 
              if fm1 = fm2 then match_tl' nss args1 args2 env
@@ -389,16 +400,27 @@ fun match_form nss pat cf env:menv =
                    then 
                        match_tl' nss [(hd args1)] 
                                  [mk_var $ hd (HOLset.listItems (fvf cf))]    env
-                   else env)
+                   else 
+raise ERR ("attempting to matching fvar to something that has more variables",[],[],[]) (*env *))
       | _ => raise ERR ("different formula constructors",[],[],[pat,cf])
-and match_fl nss l1 l2 env = 
+and match_fl nss ps l1 l2 env = 
     case (l1,l2) of 
         ([],[]) => env
       | (h1::t1,h2::t2) =>  
-        match_fl nss t1 t2 (match_form nss h1 h2 env)
+        match_fl nss ps t1 t2 (match_form nss ps h1 h2 env)
       | _ => raise simple_fail "incorrect length of list"
 
 
+fun fVars f = 
+    case f of
+        Pred(P,false,args) => HOLset.add(HOLset.empty String.compare,P)
+      | Conn("~",[f0]) => fVars f0
+      | Conn(_,[f1,f2]) => HOLset.union(fVars f1,fVars f2)
+      | Quant(_,_,_,b) => fVars b
+      | Pred(_,true,_) => HOLset.empty String.compare
+      |_ => raise ERR ("fVars.ill-formed formula",[],[],[f])
+
+fun fVarsl fl = bigunion String.compare (List.map fVars fl)
 
 (*
 want 
@@ -776,5 +798,35 @@ fun dest_uex0 f =
 
 val _ = new_pred "T" [];
 val _ = new_pred "F" [];
+
+
+
+
+
+(*
+fun fVar_Inst1 (pair as (P,(argl:(string * sort) list,Q))) f = 
+    let val frees = fvf Q
+    in
+    case view_form f of
+        vPred(P0,false,args0) =>
+(*ListPair.map ListPair.foldl*)
+(*mk_inst (zip argl args0)ListPair. [] *)
+        if P0 = P then
+            let val venv = match_tl essps (List.map mk_var argl) args0 emptyvd 
+            in inst_form (mk_menv venv emptyfvd) Q
+            end
+(*if the number of arguments is wrong, or the sorts is wrong, then handle the matching exn by returning f *)
+        else f
+      | vConn(co,fl) => mk_conn co (List.map (fVar_Inst1 pair) fl)
+      | vQ(q,n,s,b) => 
+        (case HOLset.find (fn (n0,s0) => n0 = n) frees of 
+            SOME _ => 
+            (let val (n',s') = dest_var (pvariantt frees (mk_var(n,s)))
+            in mk_quant q n' s' (fVar_Inst1 pair (substf ((n,s),mk_var(n',s'))b))
+            end )
+           |_ => mk_quant q n s (fVar_Inst1 pair b)) 
+      | vPred (_,true,_) => f
+    end
+*)
 
 end
