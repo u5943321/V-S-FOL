@@ -449,6 +449,26 @@ val pdeff = f0; val th = AX1 |> qspecl [‘A’,‘B’]
 
 AX1 |> rewr_rule[th]
 
+val f0 = “P <=> Q”
+
+val th = assume f0
+val th = mk_thm(essps,[],f0)
+
+
+rewr_fconv th “R”
+
+val (G,fl,f) = cg $
+e0
+(dimp_tac >> rpt strip_tac 
+>-- (first_x_assum irule >> arw[]) >>
+first_x_assum irule >> arw[]
+
+ (qby_tac ‘A & B’ >> arw[]) first_x_assum drule >> arw[])
+(form_goal
+“(A & B ==> C) <=> (A ==> B ==> C)”)
+first_x_assum mapfilter
+
+
 
 *)
 
