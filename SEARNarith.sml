@@ -1470,7 +1470,22 @@ e0
 (form_goal
  “!n.~(Lt(n,O))”));
 
+(*
+val f = concl N_ind_P
+val f0 = “P(n) <=> Sub(Suc(m),Suc(n)) = Sub(m,n)”
+val th = (add_assum “!n:mem(N). P(n) <=> P(n)” (mk_thm(fvf f0,[],f0)))
 
+basic_fconv no_conv (rewr_fconv (spec_all th)) f
+
+
+N_ind_P |> rewr_rule[th] 
+
+
+
+
+basic_fconv no_conv (rewr_fconv (add_assum “!n:mem(N). P(n) <=> P(n)” (spec_all th)))
+
+*)
 
 local
 val l = 

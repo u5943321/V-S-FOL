@@ -399,6 +399,8 @@ fun uex_ex f =
     end
 
 fun uex2ex_rule th = mp (uex_ex $concl th) th
+
+
 fun uex_expand th = rewr_rule [uex_def $ concl th] th
 
 

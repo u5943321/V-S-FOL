@@ -70,5 +70,9 @@ val taut_fconv: fconv
 val taut_imp_fconv: fconv
 val top_depth_fconv: conv -> fconv -> fconv
 val try_fconv: fconv -> fconv
+val exists_fconv: (form -> thm) -> form -> thm
+val forall_fconv: (form -> thm) -> form -> thm
+val uex_fconv: (form -> thm) -> form -> thm
+
 
 end

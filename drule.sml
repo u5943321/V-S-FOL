@@ -1157,6 +1157,42 @@ fun exists_iff (n,s) th =
     in dimpI eP2eQ eQ2eP
     end
 
+
+
+(*worrying about case that 
+
+
+?!R. P(R) <=> ... !R'. ==> R' = R
+
+ but for Q.
+
+?!R. P(R) <=> ... !R'''. ==> R''' = R *)
+fun uex_iff (n,s) th = 
+    let
+        val (G,A,C) = dest_thm th
+        val (P,Q) = dest_dimp C
+        val ueP = mk_uex n s P
+        val ueQ = mk_uex n s Q
+        val uePdef = uex_def ueP
+        val PR = snd o dest_dimp o concl $ uePdef
+        val (_,PRb) = dest_exists PR
+        val ueQdef = uex_def ueQ
+        val QR = snd o dest_dimp o concl $ ueQdef
+        val (_,QRb) = dest_exists QR
+        val (n',s') = dest_var (pvariantt G (mk_var(n,s)))
+        val dimp0 = imp_iff 
+                   (inst_thm (mk_inst [((n,s),mk_var(n',s'))] []) th)
+                   (frefl (mk_eq (mk_var(n',s')) (mk_var(n,s))))
+        val dimp1 = forall_iff (n',s') dimp0
+        val dimp2 = conj_iff th dimp1
+        val dimp3 = exists_iff (n,s) dimp2
+        val dimp4 = iff_trans (iff_trans uePdef dimp3) (iff_swap ueQdef)
+    in
+        dimp4
+    end
+
+
+
 val CONJ_COMM = 
     let val p = mk_fvar "P" []
         val q = mk_fvar "Q" []

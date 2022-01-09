@@ -142,4 +142,6 @@ val strip_all_and_imp: thm -> thm
 val strip_neg: thm -> thm
 val forall_iff: (string * sort) -> thm -> thm
 val CONJ_COMM:thm
+
+val uex_iff: (string * sort) -> thm -> thm
 end

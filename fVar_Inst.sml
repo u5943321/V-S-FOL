@@ -359,3 +359,135 @@ f4 = P(n) ==> P(Eval(SUC, n)): form
 rewr_fconv (spec_all th) “P(O)”
 
 *)
+
+
+
+(*
+
+
+val f = “?R:A->B.!a:mem(A) b:mem(B).Holds(R,a,b)<=> P(a,b)”
+
+val f0 = “P(a,b:mem(B)) <=> ~(a:mem(A) = a)”
+val th = (add_assum “!n:mem(N). P(n) <=> P(n)” (mk_thm(fvf f0,[],f0)))
+
+*)
+
+
+
+(*
+val f0 = “P(n) <=> Sub(Suc(m),Suc(n)) = Sub(m,n)”
+val th = (add_assum “!n:mem(N). P(n) <=> P(n)” (mk_thm(fvf f0,[],f0)))
+
+uex_fconv (rewr_fconv th) “?!n. P(n:mem(N))”
+
+ fVar_Inst 
+[("P",([("a",mem_sort (mk_set "A")),("b",mem_sort (mk_set "B"))],
+“Holds(R1:A->B,a,b)”))] 
+(AX1 |> qspecl [‘A’,‘B’]) |> uex_expand
+
+val f0 = “P(a,b) <=> Holds(R1:A->B,a,b)”
+
+val th = add_assum “!a:mem(A) b:mem(B). P(a,b) <=> P(a,b)”
+ (mk_thm (fvf f0,[],f0))
+
+
+
+
+
+val f = concl (AX1 |> qspecl [‘A’,‘B’])
+
+
+val f0 = “!a b.P(a,b) <=> Holds(R1:A->B,a,b)”
+val localax = mk_thm(fvf f0,[],f0)
+val th1 = assume f0
+(AX1 |> qspecl [‘A’,‘B’] |> rewr_rule[th1]) |> prove_hyp localax
+
+(AX1 |> qspecl [‘A’,‘B’]) |> rewr_rule[th]
+
+top_depth_fconv no_conv (rewr_fconv th) 
+“!a b. Holds(R:A->B,a,b) <=> P(a,b)”
+
+top_depth_fconv no_conv (rewr_fconv th) 
+“?R. !a b. Holds(R:A->B,a,b) <=> P(a,b)”
+
+top_depth_fconv no_conv (rewr_fconv th) 
+“?!R. !a b. Holds(R:A->B,a,b) <=> P(a,b)”
+
+
+basic_fconv no_conv (rewr_fconv th) 
+“!B.?!R. !a b. Holds(R:A->B,a,b) <=> P(a,b)”
+
+sub_fconv no_conv (top_depth_fconv no_conv (rewr_fconv th)) 
+“!B.?!R. !a b. Holds(R:A->B,a,b) <=> P(a,b)”
+
+
+
+forall_iff ("B",set_sort) $
+
+(top_depth_fconv no_conv (rewr_fconv th)) 
+“?!R. !a b. Holds(R:A->B,a,b) <=> P(a,b)”
+
+
+forall_fconv (top_depth_fconv no_conv (rewr_fconv th)) 
+“!B.?!R. !a b. Holds(R:A->B,a,b) <=> P(a,b)”
+
+
+no_conv (top_depth_fconv no_conv (rewr_fconv th)) 
+“!B.?!R. !a b. Holds(R:A->B,a,b) <=> P(a,b)”
+
+val 
+
+fun spec_fVar pdeff th = 
+    let val localax = mk_thm(fvf pdeff,[],pdeff) 
+        val th0 = rewr_rule[localax] th
+    in th0
+    end
+
+val f0 = “!a b.P(a,b) <=> Holds(R1:A->B,a,b)”
+
+val pdeff = f0; val th = AX1 |> qspecl [‘A’,‘B’]
+
+AX1 |> rewr_rule[th]
+
+
+*)
+
+(*
+val f = concl N_ind_P
+val f0 = “P(n) <=> Sub(Suc(m),Suc(n)) = Sub(m,n)”
+val th = (add_assum “!n:mem(N). P(n) <=> P(n)” (mk_thm(fvf f0,[],f0)))
+
+basic_fconv no_conv (rewr_fconv (spec_all th)) f
+
+“P(a,b) <=> ~(a = a)”
+
+N_ind_P |> rewr_rule[th] 
+
+val th = mk_thm(essps,[],“(?!a.P(a)) <=> ?a. P(a) & (!b. P(b) ==> b = a)”)
+
+val f0 = “?!a.Q(a)”
+
+
+val th = mk_thm(essps,[],“P <=> Q(a)”)
+
+val f0 = “R(a)”
+
+rewr_fconv (th) f0
+
+
+basic_fconv no_conv (rewr_fconv (add_assum “!n:mem(N). P(n) <=> P(n)” (spec_all th)))
+
+*)
+
+(*
+val (ct,asl,w) = cg $
+e0
+(assume_tac l0 >> strip_tac >>
+ first_x_assum (qspecl_then [‘A’] assume_tac) >>
+ first_assum (fn th => assume_tac (uex_def $ concl th)) >> fs[])
+(form_goal
+“!A. ?!R:1->A.!a:mem(A). Holds(R,dot,a) <=> P(a)”)
+
+w |> rewr_fconv (uth)
+
+*)

@@ -242,6 +242,12 @@ fun exists_fconv fc f =
         exists_iff (n,s) $ fc (subst_bound (mk_var(n,s)) b)
       | _ => raise ERR ("exists_fconv.not an all",[],[],[f])
 
+fun uex_fconv fc f = 
+    case view_form f of
+        (vQ("?!",n,s,b)) => 
+        uex_iff (n,s) $ fc (subst_bound (mk_var(n,s)) b)
+      | _ => raise ERR ("uex_fconv.not an all",[],[],[f])
+
 
 (*
 val refl_fconv = 
@@ -267,6 +273,7 @@ fun sub_fconv c fc =
                  neg_fconv fc,
                  forall_fconv fc,
                  exists_fconv fc,
+                 uex_fconv fc,
                  pred_fconv c])
 
 (*TODO: uex_fconv*)

@@ -383,8 +383,15 @@ fun match_form nss ps pat cf env:menv =
                | _ => fv2f' fm cf env)
  (*P(a) <=> Q(a) match to P(f(a)) gives a|-> f(a), obtains
  P(f(a)) <=> Q(f(a)), if in second clause ,match a to a, useless *)
-      | (Pred(fm1,false,args1),cf) => 
-        if HOLset.member(ps,fm1) then 
+      | (Pred(fm1,false,args1),cf) =>
+        (case cf of 
+            Pred(fm',false,args') =>
+            if fm' = fm1 then match_tl' nss args1 args' env
+            else raise ERR ("match_form.attempting match fvar with arguments to concrete formula, which is a formula variable",[],[],[pat])
+          | _ => raise ERR ("match_form.attempting match fvar with arguments to concrete formula",[],[],[pat]))
+      (*  else *)
+ 
+        (*if HOLset.member(ps,fm1) then 
             case cf of 
                 Pred(fm',false,args') =>
                 if fm' = fm1 then match_tl' nss args1 args' env
@@ -395,13 +402,13 @@ fun match_form nss ps pat cf env:menv =
             Pred(fm2,false,args2) => 
              if fm1 = fm2 then match_tl' nss args1 args2 env
              else env
-            | _ => if length args1 = 1 andalso 
+            | _ => (*if length args1 = 1 andalso 
                       length (HOLset.listItems (fvf cf)) = 1
                    then 
                        match_tl' nss [(hd args1)] 
                                  [mk_var $ hd (HOLset.listItems (fvf cf))]    env
-                   else 
-raise ERR ("attempting to matching fvar to something that has more variables",[],[],[]) (*env *))
+                   else  *)
+raise ERR ("attempting to matching fvar with variables to some concrete formula",[],[],[]) (*env *)) *)
       | _ => raise ERR ("different formula constructors",[],[],[pat,cf])
 and match_fl nss ps l1 l2 env = 
     case (l1,l2) of 
