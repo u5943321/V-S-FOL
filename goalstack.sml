@@ -124,6 +124,18 @@ fun prove_store (n,g0) =
 
 
 
+
+fun store_as name th = 
+let val _ = store_thm(name, th)
+in th
+end
+
+
+fun store_ax (name,f) = store_as name (new_ax f)
+
+
+
+
 (*partitition into three things or multiple things *)
 
 fun cons_insert (ns:string * sort) dict = 

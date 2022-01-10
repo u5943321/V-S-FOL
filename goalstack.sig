@@ -20,4 +20,6 @@ sig
     val prove_store: string * gstk -> thm
     val store_thm: string * thm -> unit
     val ppgstk: gstk -> ('a, unit) smpp.t
+    val store_as: string -> thm -> thm
+    val store_ax: string * form -> thm
 end

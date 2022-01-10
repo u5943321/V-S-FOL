@@ -40,8 +40,20 @@ fun fVar_Inst_th (pair as (P,(argl:(string * sort) list,Q))) th =
 
 fun fVar_Inst [pair] th = fVar_Inst_th pair th
 
+
+fun ind_with th (ct,asl,w) = 
+    let 
+        val (P,args) = dest_fvar $ concl (strip_all_and_imp th)
+        val (b,bvs) = strip_forall w
+        val th1 = fVar_Inst_th (P,(bvs,b)) th
+    in match_mp_tac th1 (ct,asl,w)
+    end
+
 val _ = new_pred "T" [];
 val _ = new_pred "F" [];
+
+
+(*
 
 fun sspecl tl th = 
     let val (b,vs) = strip_forall $ concl th
@@ -57,11 +69,15 @@ fun sspecl_then tl (ttac: thm_tactic): thm_tactic =
 
 val qsspecl_then = qterml_tcl sspecl_then
 
+*)
 
+(*
 fun store_as name th = 
 let val _ = store_thm(name, th)
 in th
 end
+
+*)
 
 (*
 
@@ -108,6 +124,8 @@ fun fVar_Inst l th =
 
 *)
 
+
+(*
 local
 fun delete'(set,mem) = HOLset.delete(set,mem) handle _ => set
 in
@@ -138,6 +156,20 @@ fun ex2fsym fsym strl th =
     end
 
 
+fun ex2fsym fsym strl th = 
+    let val th' = spec_all th
+        val ct = cont th'
+    in
+        define_fsym fsym 
+        (List.map (dest_var o (parse_term_with_cont ct)) strl) th'
+    end
+
+*)
+
+
+
+
+(*
 fun new_ax f = 
     let
         val _ = HOLset.equal(fvf f,essps) orelse
@@ -145,7 +177,11 @@ fun new_ax f =
     in
         mk_thm(essps,[],f)
     end
+
 fun store_ax (name,f) = store_as name (new_ax f)
+
+
+*)
 
 val _ = new_sort "set" [];
 val _ = new_sort "mem" [("A",mk_sort "set" [])];
@@ -191,10 +227,15 @@ val flip_tac =
 
 val AX0 = new_ax “?A a:mem(A).T”
 
+
+(*
 fun dest_mem_sort s = 
     let val (sn,tl) = dest_sort s
     in if sn = "mem" then hd tl else raise ERR ("dest_mem_sort.input sort is not a mem sort",[s],[],[])
     end
+
+
+*)
 
 (*Axiom 1 (Relational comprehension): For any two sets A and B, and any property P that can obtain of an element of A and an element of B, there exists a unique relation φ:A↬B such that φ(x,y) if and only if P obtains of x and y.
 
@@ -3393,6 +3434,8 @@ val nPr_def = define_pred
 val _ = new_pred "T" [];
 val _ = new_pred "F" [];
 
+
+(*
 fun mk_foralls nsl f = 
     case rev nsl of 
         [] => f
@@ -3416,6 +3459,7 @@ fun define_pred f =
     in mk_thm(essps,[],f')
     end 
 
+*)
 
 val Eqv_def = define_pred
 “!A B. Eqv(A,B) <=> ?f:A->B. isBij(f)”

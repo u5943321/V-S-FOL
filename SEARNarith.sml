@@ -1487,6 +1487,9 @@ basic_fconv no_conv (rewr_fconv (add_assum “!n:mem(N). P(n) <=> P(n)” (spec_
 
 *)
 
+
+
+(*
 local
 val l = 
  fVar_Inst 
@@ -1503,6 +1506,18 @@ e0
 (form_goal
  “!m n. Sub(Suc(m),Suc(n)) = Sub(m,n)”));
 end
+*)
+
+
+val Sub_mono_eq = prove_store("Sub_mono_eq",
+e0
+(strip_tac >> ind_with N_ind_P >> rw[Sub_O,Sub_Suc,Suc_def] >> 
+ rpt strip_tac (* 2 *) >-- rw[Pre_Suc] >>
+ pop_assum (assume_tac o GSYM) >> arw[])
+(form_goal
+ “!m n. Sub(Suc(m),Suc(n)) = Sub(m,n)”));
+
+
 
 local
 val l = 

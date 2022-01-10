@@ -102,4 +102,6 @@ val existsl_tac: term list -> tactic
 val disch_then: thm_tactic -> tactic
 val disch_tac: tactic
 
+val sspecl: term list -> thm -> thm
+val sspecl_then: term list -> thm_tactic -> thm_tactic
 end

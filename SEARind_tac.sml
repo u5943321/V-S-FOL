@@ -10,9 +10,9 @@ where pred is not a fvar and P is
 
 fun ind_with th (ct,asl,w) = 
     let 
-        val (P,_) = dest_fvar $ concl (strip_all_and_imp th)
+        val (P,args) = dest_fvar $ concl (strip_all_and_imp th)
         val (b,bvs) = strip_forall w
-        val th1 = fVar_Inst [(P,(bvs,b))] th
+        val th1 = fVar_Inst_th (P,(bvs,b)) th
     in match_mp_tac th1 (ct,asl,w)
     end
 

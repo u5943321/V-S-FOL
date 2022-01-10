@@ -55,6 +55,19 @@ fun qpick_x_assum fq (thtac:thm_tactic): tactic =
 fun qgen qt th = genl [dest_var o qparse_term_with_cont (cont th) $ qt] th
 
 
+val qsspecl_then = qterml_tcl sspecl_then
+
+
+
+fun ex2fsym fsym strl th = 
+    let
+        val ct = cont th
+    in
+        define_fsym fsym 
+        (List.map (dest_var o (parse_term_with_cont ct)) strl) th
+    end
+
+
 (*
 fun filter_cont ct = 
     let val ctl = HOLset.listItems ct

@@ -42,5 +42,6 @@ val trueI: form list -> thm
 val view_thm: thm -> thm_view
 val uex_def:form -> thm
 val define_pred: form -> thm 
-
+val new_ax: form -> thm
+val define_fsym: string -> (string * sort) list -> thm -> thm
 end

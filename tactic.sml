@@ -910,5 +910,24 @@ val fs = full_simp_tac
 val rpt = repeat  
 
 fun existsl_tac l = map_every (exists_tac) l
+
+
+
+
+fun sspecl tl th = 
+    let val (b,vs) = strip_forall $ concl th
+        val ars = List.filter (fn (n,s) => not (on_ground o fst o dest_sort o snd $ (n,s))) vs
+        val env = match_tl essps (List.map mk_var ars) tl emptyvd
+        val tl' = List.map (inst_term env) (List.map mk_var vs)
+    in specl tl' th
+    end
+
+
+fun sspecl_then tl (ttac: thm_tactic): thm_tactic = 
+    fn th => ttac (sspecl tl th)
+
+(*val qsspecl_then = qterml_tcl sspecl_then *)
+
+
 end
     

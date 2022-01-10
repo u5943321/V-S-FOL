@@ -1,6 +1,6 @@
 
 
-
+(*
 fun mk_foralls nsl f = 
     case nsl of 
         [] => f
@@ -24,10 +24,10 @@ fun define_pred f =
     in mk_thm(essps,[],f')
     end 
 
+*)
 
 
-
-
+(*
 fun sspecl tl th = 
     let val (b,vs) = strip_forall $ concl th
         val ars = List.filter (fn (n,s) => not (on_ground o fst o dest_sort o snd $ (n,s))) vs
@@ -42,16 +42,19 @@ fun sspecl_then tl (ttac: thm_tactic): thm_tactic =
 
 val qsspecl_then = qterml_tcl sspecl_then
 
+*)
 
 
 
-
-
+(*
 fun store_as name th = 
 let val _ = store_thm(name, th)
 in th
 end
 
+*)
+
+(*
 local
 fun delete'(set,mem) = HOLset.delete(set,mem) handle _ => set
 in
@@ -80,6 +83,11 @@ fun ex2fsym fsym strl th =
         val b' = substf ((n,s),fterm) b
     in mk_thm (ct,asl,mk_imp hyp b')
     end
+
+*)
+
+
+
 
 fun uex_ex f = 
     let val th0 = iffLR $ uex_def f |> undisch
@@ -131,6 +139,8 @@ val _ = new_fun "id"
 
 val _ = new_sort_infix "ar" "->"
 
+
+(*
 fun new_ax f = 
     let
         val _ = HOLset.equal(fvf f,essps) orelse
@@ -140,6 +150,7 @@ fun new_ax f =
     end
  
 fun store_ax (name,f) = store_as name (new_ax f)
+*)
 
 val idL = store_ax("idL", “!B A f:B->A. id(A) o f = f”);
 

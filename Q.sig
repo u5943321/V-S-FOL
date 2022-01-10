@@ -33,4 +33,7 @@ val qterm_rule: (term -> thm -> thm) -> term frag list -> thm -> thm
 val qterml_rule:
    (term list -> thm -> thm) -> term frag list list -> thm -> thm
 
+val qsspecl_then: term frag list list -> thm_tactic -> thm -> tactic
+val ex2fsym: string -> string list -> thm -> thm
+
 end
