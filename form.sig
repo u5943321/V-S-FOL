@@ -107,5 +107,6 @@ val dest_f: form -> (string * sort) * form
 
 val fVars: form -> string set
 val fVarsl: form list -> string set
+val rename_bound: string -> form -> form
 end
 

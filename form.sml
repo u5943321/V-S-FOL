@@ -836,4 +836,10 @@ fun fVar_Inst1 (pair as (P,(argl:(string * sort) list,Q))) f =
     end
 *)
 
+fun rename_bound n1 f = 
+    case f of 
+        Quant(q,n,s,b) => Quant(q,n1,s,b)
+      | _ => raise ERR ("rename_bound.not a quantified formula",[],[],[f])
+
+
 end

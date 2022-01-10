@@ -230,6 +230,9 @@ fVar_Inst' ("P",([("y",mem_sort N)],“y = n:mem(N)”))
 (mk_thm(essps,[],“!n:mem(N).P(n)”))
 
 
+fVar_Inst_f ("P",([("y",mem_sort N)],“y = n:mem(N)”))
+“!n:mem(N).P(n)”
+
 fVar_Inst1 ("P",([("y",mem_sort N)],“y = n:mem(N)”))
 “!n:mem(N).P(n)”
 (mk_thm(essps,[],“!n:mem(N).P(n)”))
