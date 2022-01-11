@@ -358,6 +358,24 @@ and fvs s =
 and fvtl tl = var_bigunion (List.map fvt tl)
 
 
+fun fvta a t = 
+    case t of 
+        Var(p as (n,s)) => fvsa (HOLset.add(a,p)) s
+      | Bound _ => a 
+      | Fun(f,s,tl) => fvtla (fvsa a s) tl
+and fvtla a [] = a
+  | fvtla a (t :: ts) = fvtla (fvta a t) ts
+and fvsa a (srt(sname,ts)) = 
+    fvtla a ts
+
+val fvt = fvta essps
+(*
+fun fvt a 
+
+
+*)
+
+
 fun fxty i = 
     case i of 
        "<=>" => 100
