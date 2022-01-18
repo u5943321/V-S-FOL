@@ -8,6 +8,8 @@ val AX4 = new_ax
     (!n0. P(n0) ==> P(Eval(S0,n0))) ==>
     P(n)
 
+wrong because the "invisiable" quantifier of P is always on the outmost.
+
 think a problem is that if we allow the definition to include fvars,
 then we can make something like:
 
@@ -369,6 +371,231 @@ e0
 (form_goal
  “!A nas. isL(nas) <=> (nas = Empty(N * A) |
   (?nas0 a0. nas = Ins(Pair(CARD(nas0),a0),nas0) & isL(nas0)))”));
+
+
+
+
+val _ = new_sort "fun" [("A",mk_sort "set" []),("B",mk_sort "set" [])]
+val _ = new_sort_infix "fun" "~>"
+
+fun fun_sort A B = mk_sort "fun" [A,B]
+fun mk_func f A B = mk_var(f,fun_sort A B)
+val _ = EqSorts := "fun" :: (!EqSorts)
+
+
+val _ = new_fun "App" (mem_sort (mk_set "B"),
+                       [("f",fun_sort (mk_set "A") (mk_set "B")),
+                       ("a",mem_sort (mk_set "A"))]);
+
+val rel2fun = store_ax("rel2fun",
+“!A B R:A->B. isFun(R) ==> ?!f:A~>B. !a b. App(f,a) = b <=> Holds(R,a,b)”)
+
+
+val Nf_def = define_pred 
+“!X x0:mem(X) t:X~>X n x. Nf(x0,t,n,x) <=>
+(!P.IN(Pair(O,x0),P) &
+   (!n x. IN(Pair(n,x),P) ==>
+          IN(Pair(Suc(n),App(t,x)),P)) ==> 
+ IN(Pair(n,x),P))”
+
+
+val Nf_ind0 = 
+    Nf_def |> spec_all |> dimpl2r |> undisch
+           |> strip_all_and_imp 
+           |> disch “Nf(x0:mem(X), t:X~>X, n:mem(N), x:mem(X))”
+           |> gen_all  
+           |> disch_all 
+           |> qgen ‘P’ |> qgen ‘t’ |> qgen ‘x0’ |> qgen ‘X’
+
+local 
+val l = allE (rastt "N * X") IN_def_P_expand
+             |> spec_fVar “P(a:mem(N * X)) <=> P(Fst(a),Snd(a))”
+in
+val Nf_ind = prove_store("Nf_ind",
+e0
+(strip_tac >> strip_tac >> strip_tac >> rw[Nf_def] >> rpt strip_tac >>
+ qsuff_tac
+ ‘?P0. !n:mem(N) x:mem(X). IN(Pair(n,x),P0) <=> P(n,x)’
+ >-- (strip_tac >> 
+     first_x_assum (qspecl_then [‘P0’] assume_tac) >>
+     rfs[]) >>
+ strip_assume_tac l >> 
+ qexists_tac ‘s’ >> strip_tac >> strip_tac >>
+ first_x_assum (qsspecl_then [‘Pair(n',x')’] assume_tac) >>
+ (*need spec, different from all above.*)
+ fs[Fst_of_Pair,Snd_of_Pair])
+(form_goal 
+ “!X x0:mem(X) t:X~>X.
+   (P(O,x0) &
+   (!n:mem(N) x:mem(X). P(n,x) ==> 
+    P(Suc(n),App(t,x)))) ==>
+  !n:mem(N) x:mem(X).Nf(x0,t,n,x) ==> P(n,x)”))
+end
+
+val Nf_rules = prove_store("Nf_rules",
+e0
+(strip_tac >> strip_tac >> strip_tac >> strip_tac 
+ >-- (rw[Nf_def] >> rpt strip_tac) >>
+ rw[Nf_def] >> rpt strip_tac >>
+ first_assum match_mp_tac >> first_x_assum match_mp_tac >> arw[])
+(form_goal
+ “!X x0:mem(X) t:X~>X. Nf(x0,t,O,x0) & 
+     (!n x. Nf(x0,t,n,x) ==> Nf(x0,t,Suc(n),App(t,x)))”));
+
+
+val Nf_rules_step = Nf_rules |> spec_all |> conjE2
+
+
+val Nf_cases = prove_store("Nf_cases",
+e0
+(strip_tac >> strip_tac >> strip_tac >> strip_tac >>
+ strip_tac >> dimp_tac >-- 
+ (qsuff_tac
+ ‘!n x. Nf(x0,t,n,x) ==> ((n = O & x = x0) |
+  (?pn px. n = Suc(pn) & x = App(t,px) & Nf(x0,t,pn,px)))’
+ >-- (strip_tac >> arw[]) >>
+ ind_with (Nf_ind |> qspecl [‘X’,‘x0:mem(X)’,‘t:X~>X’]) >> 
+ strip_tac (* 2 *)
+ >-- rw[] >>
+ rpt strip_tac (* 2 *) 
+ >-- (disj2_tac >> arw[] >> qexistsl_tac [‘O’,‘x0’] >> 
+     rw[Nf_rules]) >>
+ disj2_tac >> 
+ qexistsl_tac [‘n'’,‘x'’] >> rw[] >> arw[] >>
+ match_mp_tac Nf_rules_step >> arw[]) >>
+ rpt strip_tac (* 2 *)
+ >-- arw[Nf_rules] >>
+ arw[] >> match_mp_tac Nf_rules_step >> arw[])
+(form_goal
+ “!X x0:mem(X) t:X~>X n x. Nf(x0,t,n,x) <=> 
+  ((n = O & x = x0) |
+   (?pn px. n = Suc(pn) & x = App(t,px) & Nf(x0,t,pn,px)))”));
+
+
+
+val Lf_def = define_pred 
+“!A X x0:mem(X) t:A * X~>X l:mem(List(A)) x:mem(X). Lf(x0,t,l,x) <=>
+(!P.IN(Pair(Nil(A),x0),P) &
+   (!l x. IN(Pair(l,x),P) ==>
+          !a:mem(A). IN(Pair(CONS(a,l),App(t,Pair(a,x))),P)) ==> 
+ IN(Pair(l,x),P))”
+
+
+val Lf_ind0 = 
+    Lf_def |> spec_all |> dimpl2r |> undisch
+           |> strip_all_and_imp 
+           |> disch “Lf(x0:mem(X), t: A * X~>X, 
+                        l:mem(List(A)), x:mem(X))”
+           |> gen_all  
+           |> disch_all 
+           |> qgen ‘P’ |> qgen ‘t’ |> qgen ‘x0’ |> qgen ‘X’
+           |> qgen ‘A’
+
+local 
+val l = allE (rastt "List(A) * X") IN_def_P_expand
+             |> spec_fVar “P(a:mem(List(A) * X)) <=> P(Fst(a),Snd(a))”
+in
+val Lf_ind = prove_store("Lf_ind",
+e0
+(strip_tac >> strip_tac >> strip_tac >> strip_tac 
+ >> rw[Lf_def] >> rpt strip_tac >>
+ qsuff_tac
+ ‘?P0. !l:mem(List(A)) x:mem(X). IN(Pair(l,x),P0) <=> P(l,x)’
+ >-- (strip_tac >> 
+     first_x_assum (qspecl_then [‘P0’] assume_tac) >>
+     rfs[]) >>
+ strip_assume_tac l >> 
+ qexists_tac ‘s’ >> strip_tac >> strip_tac >>
+ first_x_assum (qsspecl_then [‘Pair(l',x')’] assume_tac) >>
+ (*need spec, different from all above.*)
+ fs[Fst_of_Pair,Snd_of_Pair])
+(form_goal 
+ “!A X x0:mem(X) t:A * X~>X.
+   (P(Nil(A),x0) &
+    (!l x. P(l,x) ==> 
+     !a:mem(A).P(CONS(a,l),App(t,Pair(a,x))))) ==>
+  !l:mem(List(A)) x:mem(X).Lf(x0,t,l,x) ==> P(l,x)”))
+end
+
+val Lf_rules = prove_store("Lf_rules",
+e0
+(strip_tac >> strip_tac >> strip_tac >> strip_tac >> strip_tac
+ >-- (rw[Lf_def] >> rpt strip_tac) >>
+ rw[Lf_def] >> rpt strip_tac >>
+ first_assum match_mp_tac >> first_x_assum match_mp_tac >> arw[])
+(form_goal
+ “!A X x0:mem(X) t:A * X~>X. Lf(x0,t,Nil(A),x0) & 
+  (!l x. Lf(x0,t,l,x) ==> !a.Lf(x0,t,CONS(a,l),App(t,Pair(a,x))))”));
+
+
+val Lf_rules_step = Lf_rules |> spec_all |> conjE2
+
+
+val Lf_cases = prove_store("Lf_cases",
+e0
+(strip_tac >> strip_tac >> strip_tac >> strip_tac >>
+ strip_tac >> strip_tac >> dimp_tac >-- 
+ (qsuff_tac
+ ‘!l x. Lf(x0,t,l,x) ==> ((l = Nil(A) & x = x0) |
+  (?a pl px. l = CONS(a,pl) & x = App(t,Pair(a,px)) & 
+             Lf(x0,t,pl,px)))’
+ >-- (strip_tac >> arw[]) >>
+ ind_with (Lf_ind |> qspecl [‘A’,‘X’,‘x0:mem(X)’,‘t:A * X~>X’]) >> 
+ strip_tac (* 2 *)
+ >-- rw[] >>
+ rpt strip_tac (* 2 *) 
+ >-- (disj2_tac >> arw[] >> qexistsl_tac [‘a’,‘Nil(A)’,‘x0’] >> 
+     rw[Lf_rules]) >>
+ disj2_tac >> 
+ qexistsl_tac [‘a'’,‘l'’,‘x'’] >> rw[] >> arw[] >>
+ match_mp_tac Lf_rules_step >> arw[]) >>
+ rpt strip_tac (* 2 *)
+ >-- arw[Lf_rules] >>
+ arw[] >> match_mp_tac Lf_rules_step >> arw[])
+(form_goal
+ “!A X x0:mem(X) t:A * X~>X l:mem(List(A)) x. Lf(x0,t,l,x) <=> 
+  ((l = Nil(A) & x = x0) |
+   (?a pl px. l = CONS(a,pl) & x = App(t,Pair(a,px)) &
+              Lf(x0,t,pl,px)))”));
+
+
+
+
+
+
+
+
+
+
+
+
+
+val FI_rules_step = FI_rules |> spec_all |> conjE2
+
+
+
+
+val Nf_def = define_pred 
+“!X x0:mem(X) t:X->X . Nf(x0,t,n,x) <=>
+ isFun(t) & 
+(!P.IN(Pair(O,x0),P) &
+   (!n x. IN(Pair(n,x),P) ==>
+    !a.IN(Pair(Suc(n)),nas0),P)) ==> 
+ IN(nas,P))”
+
+
+val isL_ind0 = 
+    isL_def |> spec_all |> dimpl2r |> undisch
+            |> strip_all_and_imp 
+            |> disch “isL(nas:mem(Pow(N * A)))”
+            |> gen_all  
+            |> disch_all 
+            |> gen_all 
+
+
+
+
+
 
 
 

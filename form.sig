@@ -108,5 +108,11 @@ val dest_f: form -> (string * sort) * form
 val fVars: form -> string set
 val fVarsl: form list -> string set
 val rename_bound: string -> form -> form
+(*val fVar_Inst_f: string * ((string * sort) list * form) -> form -> form *)
+val pinst_f: vd -> form -> form
+val strip_all_quants0: form -> (string * sort) list * form
+val fVar_Inst_f0:
+   sort list -> string * ((string * sort) list * form) -> form -> form
+val fVar_Inst_f: string * ((string * sort) list * form) -> form -> form
 end
 

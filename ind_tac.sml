@@ -150,8 +150,9 @@ val p22_def = p22_ex |> spec_all |> ex2fsym0 "p22" ["A","B"]
 fun inserts d l = List.foldr (fn ((a,b),d) => Binarymap.insert(d,a,b)) d l
 
 
-val psym2IL = inserts (Binarymap.mkDict String.compare)
-[("Le",(rastt "Char(LE)",[])),("Lt",(rastt "Char(LT)",[])),
+val psym2IL0 = inserts (Binarymap.mkDict String.compare)
+[("Le",(rastt "Char(LE)",[])),
+ ("Lt",(rastt "Char(LT)",[])),
  ("HasCard",(rastt "hasCard(X)",
              [("xs",ar_sort (mk_ob "A") (rastt "Exp(X,1+1)")),
               ("n",ar_sort (mk_ob "A") N)])),
@@ -160,6 +161,11 @@ val psym2IL = inserts (Binarymap.mkDict String.compare)
         [("x",ar_sort (mk_ob "A") (mk_ob "X")),
          ("xs",ar_sort (mk_ob "A") (rastt "Exp(X,1+1)"))])),
  ("Sim",(rastt "relJ",[]))]
+
+val psym2IL = ref psym2IL0
+
+fun new_psym2IL (pred,(predfun,inputs)) = 
+psym2IL := Binarymap.insert(!psym2IL,pred,(predfun,inputs))
 
 (*
 form2IL [dest_var $ rastt "xs:1->Exp(X,1+1)",dest_var $ rastt "n:1->N"]
@@ -240,7 +246,7 @@ fun form2IL bvs f =
         mk_pred_ap (mk_fun "Eq" [cod (sort_of t2)])
          [term2IL bvs t1,term2IL bvs t2]
       | vPred(P,_,tl) => 
-        (case Binarymap.peek(psym2IL,P) of
+        (case Binarymap.peek(!psym2IL,P) of
             SOME (p,l) => 
             if l = []  then
                 mk_pred_ap p (List.map (term2IL bvs) tl)
@@ -283,3 +289,64 @@ term2IL bvs (rastt "n:1->N")
 
 “P o n:1->N = TRUE & Q o n1:1->N = TRUE”
 *)
+
+
+
+
+
+
+
+Take R: A * A -> 2. R is equivalence relation. 
+Goal: 
+1.form quotient object Q ~ A * A / R
+2.once we have map A * X -> B.
+  turn it into a map Q * X -> B
+ A * X ------> B
+  |            |
+  |            |
+ Q * X ------> B
+ 
+
+ q: A ->> Q 
+
+
+ avoid AC: not to use the section of q. and not to use ex2fsym.
+
+ to go  from Q to A 
+
+ can use section of mono. 
+
+ Q is a subset of 2^A. really want is:
+
+
+ A * X ------> B
+  |            |
+  |            |
+ 2^A * X ----> B
+
+ \a x.b
+ \as x. ?a. f a x = b
+
+define quotient to be 
+
+  Q -----> 1
+  |        |
+  |        |
+  As- ---> 2
+
+a subset of 2^A such that obtained 
+
+is a pullback 
+
+ maps f:A * X ->B
+ to 
+
+
+val  _ = new_fun "2" (ob_sort,[])
+ 
+
+
+new_abbr ("2",[]) ("+",[ONE,ONE]) 
+
+
+new_abbr ("Exp",[mk_ob "A",rastt "2"])

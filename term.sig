@@ -140,5 +140,20 @@ val dest_t: string * sort -> term * int -> term
 
 val vreplaces: int * (string * sort) -> sort -> sort
 val vreplacet: int * (string * sort) -> term -> term
+
+
+val pinst_s: vd -> sort -> sort
+val pinst_t: vd -> term -> term
+val pmatch_s:
+   sort list -> (string * sort) set -> sort -> sort -> vd -> vd
+val pmatch_t:
+   sort list -> (string * sort) set -> term -> term -> vd -> vd
+val pmatch_tl:
+   sort list -> (string * sort) set -> term list -> term list -> vd -> vd
+val recover_s: int -> sort -> sort
+val recover_t: int -> term -> term
+val shift_vd: int -> vd -> vd
+val shift_vd_eval: int -> vd -> (string * sort) -> term
+
 end
 

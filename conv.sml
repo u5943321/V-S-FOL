@@ -235,11 +235,29 @@ fun forall_fconv fc f =
         (vQ("!",n,s,b)) => 
         forall_iff (n,s) $ fc (subst_bound (mk_var(n,s)) b)
       | _ => raise ERR ("forall_fconv.not an all",[],[],[f])
+
+fun exists_fconv fc f = 
+    case view_form f of
+        (vQ("?",n,s,b)) => 
+         exists_iff (n,s) $ fc (subst_bound (mk_var(n,s)) b)
+      | _ => raise ERR ("exists_fconv.not an all",[],[],[f])
  
 fun exists_fconv fc f = 
     case view_form f of
         (vQ("?",n,s,b)) => 
-        exists_iff (n,s) $ fc (subst_bound (mk_var(n,s)) b)
+        let val th0 = fc (subst_bound (mk_var(n,s)) b)
+        in exists_iff (n,s) th0
+           handle _ =>
+                  let val (n',_) = dest_var 
+                                  (pvariantt (cont th0) 
+                                             (mk_var(n,s))) 
+                      val f' = rename_bound n' f 
+                      val ((n',s'),b') = dest_exists f'
+                      val th1 = fc (subst_bound (mk_var(n',s')) b')
+                  in
+                      exists_iff (n',s') th1
+                  end
+        end
       | _ => raise ERR ("exists_fconv.not an all",[],[],[f])
 
 fun uex_fconv fc f = 

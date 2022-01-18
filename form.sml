@@ -550,6 +550,23 @@ fun strip_quants f =
                           else raise ERR ("strip_quants.not a quantified formula",[],[],[f])
       | _ => raise ERR ("strip_quants.not a quantified formula",[],[],[f])
 
+(*code for pmatch*)
+fun strip_all_quants0 f = 
+    case f of 
+        Quant(q,n,s,b) => let val (l0,f0) = strip_all_quants0 b
+                          in ((n,s) :: l0,f0)
+                          end
+      | _ => ([],f)
+
+(*
+
+val f0 = mk_quant "!" "a" (set_sort) (mk_fvar "P" [mk_var("a",set_sort)])
+
+val f1 = mk_quant "?!" "a1" (set_sort) (f0)
+
+*)
+
+
 fun inst_term' env t = inst_term (vd_of env) t
 
 fun inst_sort' env s = inst_sort (vd_of env) s
@@ -840,6 +857,125 @@ fun rename_bound n1 f =
     case f of 
         Quant(q,n,s,b) => Quant(q,n1,s,b)
       | _ => raise ERR ("rename_bound.not a quantified formula",[],[],[f])
+
+
+
+(*
+fun pinst_f env f = 
+    case f of
+        Pred(P,b,tl) => Pred(P,b,List.map (pinst_t env) tl)
+      | Conn(co,fl) => Conn(co,List.map (pinst_f env) fl)
+      | Quant(q,n,s,b) => Quant(q,n,pinst_s env s,pinst_f env b)
+*)
+
+
+fun pinst_f vd f = 
+    case f of 
+        Quant(q,n,s,b) => 
+        let val vd1 = shift_vd 1 vd
+            val b1 = pinst_f vd1 b
+            val s1 = inst_sort vd1 s
+        in Quant(q,n,s1,b1)
+        end 
+      | Pred(p,b,tl) => Pred(p,b,List.map (inst_term vd) tl)
+      | Conn(co,fl) => Conn(co,List.map (pinst_f vd) fl)
+      
+fun fVar_Inst_P bs (pair as (P,(argl:(string * sort) list,Q))) f =
+    let val lcs = List.foldr
+                      (fn (ns,nss) => HOLset.delete(nss,ns)
+                                      handle _ => nss) 
+                      (fvf Q) argl
+    in
+    case f of
+        Pred(P0,false,args0) =>
+        if P0 = P
+        then let val venv = pmatch_tl bs lcs
+                                     (List.map mk_var argl) args0
+                                     emptyvd
+             in pinst_f venv Q
+             end 
+             handle e => raise wrap_err "fVar_Inst_P" e
+        else raise ERR ("fVar_Inst_P.different formula variable",[],[],[f])
+      | _ => raise ERR ("fVar_Inst_P.not a formula variable",[],[],[f])
+    end
+
+
+
+fun fVar_Inst_f0 bs (pair as (P,(argl:(string * sort) list,Q))) f = 
+    let val lcs = List.foldr
+                      (fn (ns,nss) => HOLset.delete(nss,ns)
+                                      handle _ => nss) 
+                      (fvf Q) argl
+    in
+    case f of
+        Pred(P0,false,args0) => fVar_Inst_P bs pair f
+      | Conn(co,[f1,f2]) => 
+        (let val f1' = fVar_Inst_f0 bs pair f1
+         in Conn(co,[f1',fVar_Inst_f0 bs pair f2])
+            handle _ => Conn(co,[f1',f2])
+         end 
+         handle _ => Conn(co,[f1,fVar_Inst_f0 bs pair f2]))
+      | Conn("~",[f1]) => 
+        Conn("~",[fVar_Inst_f0 bs pair f1])
+      | Pred(_,true,_) => raise ERR ("fVar_Inst_f0.Pred cannot be fVar insted",[],[],[f])
+      | Quant(q,n,s,b) => Quant(q,n,s,fVar_Inst_f0 (s :: bs) pair b)
+    end
+
+(*
+fun fVar_Inst_f0 bs (pair as (P,(argl:(string * sort) list,Q))) f = 
+    let val lcs = List.foldr
+                      (fn (ns,nss) => HOLset.delete(nss,ns)
+                                      handle _ => nss) 
+                      (fvf Q) argl
+    in
+    case f of
+        Pred(P0,false,args0) =>
+        if P0 = P
+        then let val venv = pmatch_tl bs lcs
+                                     (List.map mk_var argl) args0
+                                     emptyvd
+             in pinst_f venv Q
+             end 
+             handle _ => f 
+        else f
+      | Conn(co,fl) => Conn(co,List.map (fVar_Inst_f0 bs pair) fl)
+      | Pred(_,true,_) => f
+      | Quant(q,n,s,b) => Quant(q,n,s,fVar_Inst_f0 (s :: bs) pair b)
+    end
+*)
+
+
+fun fVar_Inst_f (pair as (P,(argl:(string * sort) list,Q))) f = 
+fVar_Inst_f0 [] pair f
+
+
+(*
+
+fun fVar_Inst_f (pair as (P,(argl:(string * sort) list,Q))) f = 
+    let val lcs = List.foldr
+                      (fn (ns,nss) => HOLset.delete(nss,ns)
+                                      handle _ => nss) 
+                      (fvf Q) argl
+    in
+    case f of
+        Pred(P0,false,args0) =>
+        if P0 = P
+        then let val venv = pmatch_tl essps 
+                                     (List.map mk_var argl) args0
+                                     emptyvd
+             in pinst_f venv Q
+             end 
+             handle _ => f 
+        else f
+      | Conn(co,fl) => Conn(co,List.map (fVar_Inst_f pair) fl)
+      | Pred(_,true,_) => f
+      | Quant(q,n,s,b) => Quant(q,n,s,fVar_Inst_f pair b)
+    end
+
+*)
+
+
+
 
 
 end

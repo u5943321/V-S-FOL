@@ -1,4 +1,4 @@
-
+(*
 fun fVar_Inst_f (pair as (P,(argl:(string * sort) list,Q))) f = 
     let val lcs = List.foldr
                       (fn (ns,nss) => HOLset.delete(nss,ns)
@@ -26,17 +26,95 @@ fun fVar_Inst_f (pair as (P,(argl:(string * sort) list,Q))) f =
             in fVar_Inst_f pair f'
             end)
     end
+*)
 
 
 fun fVar_Inst_th (pair as (P,(argl:(string * sort) list,Q))) th = 
     let val (ct,asl,w) = dest_thm th
-        val asl' = List.map (fVar_Inst_f pair) asl
-        val w' = fVar_Inst_f pair w
+        val asl' = List.map (form.fVar_Inst_f pair) asl
+        val w' = form.fVar_Inst_f pair w
         val vs = bigunion (pair_compare String.compare sort_compare)
                           (List.map fvf (w' :: asl'))
         val newct = HOLset.union(ct,vs)
     in mk_thm (newct,asl',w')
     end
+
+
+fun fVar_Inst [pair] th = fVar_Inst_th pair th
+
+
+
+
+
+exception UNCHANGED
+ fun total f x = SOME (f x) handle e => NONE
+
+ fun MAP f l = 
+   let
+     (* map2 is the version where something has changed *)
+     fun map2 A [] = List.rev A
+       | map2 A (h::t) = map2 ((f h handle e => h) :: A) t
+     (* map1 is the version to call where nothing has changed yet *)
+     fun map1 A [] = raise UNCHANGED
+       | map1 A (h::t) = 
+           case total f h of
+             SOME fh => map2 (fh::A) t
+           | NONE => map1 (h::A) t
+   in
+     map1 [] l
+   end
+
+
+
+fun MAP f l = 
+   let
+     (* map2 is the version where something has changed *)
+     fun map2 A [] = List.rev A
+       | map2 A (h::t) = map2 ((f h handle e => h) :: A) t
+     (* map1 is the version to call where nothing has changed yet *)
+     fun map1 A [] = raise UNCHANGED
+       | map1 A (h::t) = 
+           case total f h of
+             SOME fh => map2 (fh::A) t
+           | NONE => map1 (h::A) t
+   in
+     map1 [] l
+   end
+
+(*
+
+
+
+fun MAP f l = 
+   let
+     (* map2 is the version where something has changed *)
+     fun map2 A [] = List.rev A
+       | map2 A (h::t) = map2 ((f h handle e => h) :: A) t
+     (* map1 is the version to call where nothing has changed yet *)
+     fun map1 n [] = raise UNCHANGED
+       | map1 n (h::t) = 
+           case total f h of
+             SOME fh => map2 (fh::(list before n)) t
+           | NONE => map1 (n + 1) t
+   in
+     map1 0 l
+   end
+
+
+*)
+
+
+fun fVar_Inst_th (pair as (P,(argl:(string * sort) list,Q))) th = 
+    let val (ct,asl,w) = dest_thm th
+        val lcs = List.foldr
+                      (fn (ns,nss) => HOLset.delete(nss,ns)
+                                      handle _ => nss) 
+                      (fvf Q) argl
+        val ct' = HOLset.union(ct,lcs)
+        val aslw' = MAP (fVar_Inst_f pair) (w :: asl)
+    in mk_thm (ct',tl aslw',hd aslw')
+    end
+
 
 fun fVar_Inst [pair] th = fVar_Inst_th pair th
 
@@ -311,7 +389,7 @@ val _ = new_pred "isTab" [("R",rel_sort (mk_set "A") (mk_set "B")),
 
 val Tab_def = new_ax
 “!A B R TR p:TR->A q:TR->B.isTab(R,p,q) <=> 
- isFun(p) & isFun(q) & (!x y. Holds(R,x,y) <=> ?r. Eval(p,r) = x & Eval(q,r) = y) & !r s. Eval(p,r) = Eval(p,s) & Eval(q,r) = Eval(q,s) ==> r = s”
+ isFun(p) & isFun(q) & (!x y. Holds(R,x,y) <=> ?r. Eval(p,r) = x & Eval(q,r) = y) & !r s. Eval(p,r) = Eval(p,s) & Eval(q,r) = Eval(q,s) ==> r = s”;
 
 (*
 Axiom 2 (Tabulations): For any relation φ:A↬B, there exists a set |φ| and functions p:|φ|→A and q:|φ|→B such that: (1) for any x∈A and y∈B, we have φ(x,y) if and only if there exists r∈|φ| with p(r)=x and q(r)=y, and (2) for any r∈|φ| and s∈|φ|, if p(r)=p(s) and q(r)=q(s), then r=s.
@@ -326,7 +404,7 @@ val _ = new_fun "π2" (rel_sort (mk_set "TR") (mk_set "B"),[("R",rel_sort (mk_se
 
 (*how to let the ex2fsym function skip the TR and assign function symbols p1 p2?*)
 
-val AX2 = new_ax “!A B R:A->B.?TR p:TR->A q:TR->B. isFun(p) & isFun(q) & (!x y. Holds(R,x,y) <=> ?r. Eval(p,r) = x & Eval(q,r) = y) & !r s. Eval(p,r) = Eval(p,s) & Eval(q,r) = Eval(q,s) ==> r = s”
+val AX2 = new_ax “!A B R:A->B.?TR p:TR->A q:TR->B. isFun(p) & isFun(q) & (!x y. Holds(R,x,y) <=> ?r. Eval(p,r) = x & Eval(q,r) = y) & !r s. Eval(p,r) = Eval(p,s) & Eval(q,r) = Eval(q,s) ==> r = s”;
 
 (*
 Theorem 2.2. There exists a set ∅ which has no elements.
@@ -339,7 +417,7 @@ Proof. By Axiom 0, there exists a set A. By Axiom 1, there exists a relation φ:
 
 
 val AX1 = new_ax
-“!A B:set.?!R:A->B.!a:mem(A) b:mem(B).Holds(R,a,b)<=> P(a,b)”
+“!A B:set.?!R:A->B.!a:mem(A) b:mem(B).Holds(R,a,b)<=> P(a,b)”;
 
 (*
 val f0 = concl AX1
@@ -1273,14 +1351,14 @@ e0
 (form_goal
 “!A B. ?i1:A->A * B i2:B->A * B.
  !a b ab. Holds(i1,a,ab) <=> a = Eval(p1(A,B),ab) & 
-          Holds(i2,b,ab) <=> b = Eval(p2(A,B),ab)”)
+          Holds(i2,b,ab) <=> b = Eval(p2(A,B),ab)”);
 
 val tau1_def = 
 fVar_Inst [("P",([("a",mem_sort (mk_set "A")),("ab",mem_sort (Cross (mk_set "A") (mk_set "B")))],“a = Eval(p1(A,B),ab)”))]
 (AX1 |> qspecl [‘A’,‘A * B’]) |> uex_expand
 |> spec_all |> eqT_intro 
 |> iffRL |> ex2fsym "tau1" ["A","B"] 
-|> C mp (trueI []) |> gen_all
+|> C mp (trueI []) |> gen_all;
 
 (*
     RelcP_ex |> spec_all |> eqT_intro 

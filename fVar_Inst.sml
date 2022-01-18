@@ -395,7 +395,7 @@ val th = add_assum “!a:mem(A) b:mem(B). P(a,b) <=> P(a,b)”
 
 
 
-
+val f1 = “P(a:mem(A),b:mem(B)) <=> (!a0 b0. Holds(R:C->D,a0,b0) ==> Q(a,b))”
 
 val f = concl (AX1 |> qspecl [‘A’,‘B’])
 
@@ -513,4 +513,13 @@ e0
 
 w |> rewr_fconv (uth)
 
+*)
+
+
+
+(*
+fVar_Inst_f ("P",([("a",mem_sort (mk_set "A")),("b",mem_sort (mk_set "A"))],“~(a:mem(A) = a)”)) (concl (AX1 |> qspecl [‘A’,‘A’]))
+
+
+fVar_Inst_f ("P",([("y",mem_sort (mk_set "A")),("z",mem_sort (mk_set "A"))],“y = a0:mem(A) & z = a0”)) (concl (AX1 |> qspecl [‘A’,‘A’]))
 *)

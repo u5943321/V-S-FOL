@@ -28,6 +28,8 @@ fun int_option_less (n,n0) =
 
 
 fun ppterm ss g t = 
+    let val abbrs = Binarymap.listItems(!abbrdict)
+    in
     case view_term t of 
         vVar(n,s) => 
         if ss then paren 
@@ -35,6 +37,40 @@ fun ppterm ss g t =
                                    add_break (1,2) >> ppsort g s)
         else add_string n
       | vFun(f,s,[t1,t2]) => 
+        (let val (f1,args1) = 
+                (case List.find
+                    (fn (ftl,abftl) =>
+                        fst ftl = f andalso
+                        can (fn ts => match_tl essps ts [t1,t2] emptyvd)
+                            (snd ftl))
+                    abbrs 
+                 of SOME (ftl,abftl) => 
+                    (fst abftl,
+                     List.map (inst_term (match_tl essps (snd ftl) [t1,t2] emptyvd)) (snd abftl))
+                  | NONE => (f,[t1,t2]) )
+        in
+            if is_infix f1 then 
+                let val (t1,t2) = (el 1 args1,el 2 args1)
+                in
+              case g of 
+                LR(lg,rg) => 
+                let 
+                    val g1 = LR (lg, SOME (fxty f1))
+                    val g2 = LR (SOME (fxty f1),rg)
+                in 
+                    if int_option_less (fxty f1, lg) orelse int_option_leq (fxty f1, rg) then 
+                        add_string "(" >> 
+                                   ppterm ss (LR (NONE, SOME (fxty f1))) t1 >>  add_break(1,0) >> add_string f1 >> add_break(1,0) >>
+                                   ppterm ss (LR (SOME (fxty f1), NONE)) t2 >> add_string ")"
+                    else 
+                        ppterm ss g1 t1  >>  add_break(1,0) >> add_string f1 >> add_break(1,0) >>
+                               ppterm ss g2 t2
+                end            
+                end
+ else
+     if length args1 = 0 then add_string f1 else
+            add_string f1 >> paren (pr_list (ppterm ss g) (add_string "," >> add_break (1,0)) args1)
+(*
         if is_infix f then 
             case g of 
                 LR(lg,rg) => 
@@ -66,24 +102,27 @@ fun ppterm ss g t =
                         ppterm ss g1 t2 >> add_string f >> ppterm ss g2 t1
                 end
             else
-            add_string f >> paren (pr_list (ppterm ss g) (add_string "," >> add_break (1,0)) [t1,t2])
+            add_string f >> paren (pr_list (ppterm ss g) (add_string "," >> add_break (1,0)) [t1,t2]) *) end )
       | vFun(f,s,args) => 
-        if length args = 0 then add_string f else
-        add_string f >> paren (pr_list (ppterm ss g) (add_string "," >> add_break (1,0)) args)
-        (*case Binarymap.peek(!unabbrdict,f) of 
-            NONE =>
-            if length args = 0 then add_string f else
-            add_string f >> paren (pr_list (ppterm ss g) (add_string "," >> add_break (1,0)) args)
-          | SOME (abf,tl1,tl2) => 
-            let val tenv = (match_tl essps tl1 args emptyvd)
-                val args' = List.map (inst_term tenv) tl2
-            in if length args' = 0 then add_string abf else
-            add_string abf >> paren (pr_list (ppterm ss g) (add_string "," >> add_break (1,0)) args')
-            end
-            handle _  => 
-                   if length args = 0 then add_string f else
-                   add_string f >> paren (pr_list (ppterm ss g) (add_string "," >> add_break (1,0)) args)*)
+        (*if length args = 0 then add_string f else
+        add_string f >> paren (pr_list (ppterm ss g) (add_string "," >> add_break (1,0)) args) *)
+        (let val (f1,args1) = 
+                (case List.find
+                    (fn (ftl,abftl) =>
+                        fst ftl = f andalso
+                        can (fn ts => match_tl essps ts args emptyvd)
+                            (snd ftl))
+                    abbrs 
+                 of SOME (ftl,abftl) => 
+                    (fst abftl,
+                     List.map (inst_term (match_tl essps (snd ftl) args emptyvd)) (snd abftl))
+                  | NONE => (f,args) )
+        in
+        if length args1 = 0 then add_string f1 else
+        add_string f1 >> paren (pr_list (ppterm ss g) (add_string "," >> add_break (1,0)) args1)
+        end)
       | vB i => add_string "B" >> paren (add_string (int_to_string i))
+    end
 and ppsort g s =
     case dest_sort s of 
         (sn,tl) =>
