@@ -187,6 +187,10 @@ fun EQ_psym p thml =
 
 fun tautI f = thm(fvf f,[],mk_disj f (mk_neg f))
 
+(*TODO find all drule that use it and take tautI out!!!!!!!\
+ add an axiom instead.
+*)
+
 fun negI f (thm (G,A,C)) = 
     let 
         val _ = eq_form(C,FALSE) orelse 

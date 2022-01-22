@@ -8,10 +8,11 @@ exception TER of string
 
 fun is_char(l,i,u) = l <= i andalso i <= u;
 
-fun is_symbol c = 
+(*fun is_symbol c = 
 let val cl = List.map ord [#"=",#"<",#">",#"-",#":",#"*",#"(",#")"]
 in  mem c cl
 end
+*)
 
 
 (*
@@ -167,7 +168,7 @@ fun scan_symbol s =
                 val (l2,s2) = getN s 2
                 val (l3,s3) = getN s 3
                 val syml = 
-                    ["=","<",">","-",":","*","+","⟨","⟩","[","]","(",")","!","?",".","|","&","~",",","⇔","⇒","∧","¬","∨","∀","∃"]
+                    ["=","<",">","-",":","*","+","⟨","⟩","[","]","(",")","!","?",".","|","&","~",",","⇔","⇒","∧","¬","∨","∀","∃","@"]
             in 
                 if l3 = ["=","=",">"] then (Key "==>",s3) else
                 if l3 = ["<","=",">"] then (Key "<=>",s3) else

@@ -81,7 +81,9 @@ fun MAP f l =
      map1 [] l
    end
 
-(*
+
+
+
 
 
 
@@ -94,14 +96,14 @@ fun MAP f l =
      fun map1 n [] = raise UNCHANGED
        | map1 n (h::t) = 
            case total f h of
-             SOME fh => map2 (fh::(list before n)) t
+             SOME fh => map2 (fh::(rev $ List.take(l,n))) t
            | NONE => map1 (n + 1) t
    in
      map1 0 l
    end
 
 
-*)
+
 
 
 fun fVar_Inst_th (pair as (P,(argl:(string * sort) list,Q))) th = 

@@ -757,7 +757,7 @@ fun ast2pt ast (env,n) =
                         (*It can be pAnno(pAnno(pVar(name,psvar),ps1),ps2)*)
                 end 
         else
-            if mem str ["*","+","^","o"] then
+            if mem str ["*","+","^","o","@"] then
                 let val (pt1,(env1,n1)) = ast2pt ast1 (env,n)
                     val (pt2,(env2,n2)) = ast2pt ast2 (env1,n1)
                     val (Av,env3) = fresh_var env2

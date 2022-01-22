@@ -2,6 +2,9 @@
 input !a. newP(a) <=> 
           (Pbase(a0) ==> P(a0)) &
           !a1. Pstep(a1) ==> P(a1)
+
+
+
        P(!P.IN(Empty(X),P) &
  (!xs0. IN(xs0,P) ==> !x. IN(Ins(x,x0),P)) ==> 
  IN(xs,P))

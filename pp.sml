@@ -5,7 +5,7 @@ open smpp
 infix >>
 
 fun is_infix sym = 
-    if mem sym ["*","+","=","o","=="] then true else false
+    if mem sym ["*","+","=","o","==","@"] then true else false
 
  
 fun paren pp = block HOLPP.INCONSISTENT 1 

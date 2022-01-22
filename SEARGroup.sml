@@ -9,6 +9,13 @@ val Grp0_def = define_pred
  Grp0(G,e,m,i) <=> Assoc(m) & 
  (!x. App(m,Pair(x,e)) = x & App(m,Pair(e,x)) = x) &
  ”
+
+
+
+
+
+
+
 (*define topspace type to be 
  a set, and a function Pow(X) -> 2, or a mono to Pow(X). or an element of Pow(Pow(X)).
 
