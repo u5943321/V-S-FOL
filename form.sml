@@ -733,7 +733,7 @@ datatype form_view =
   | vPred of string * bool * term list
 
 
-
+(*
 local exception CLASH
 in
 fun dest_forall f = 
@@ -751,7 +751,7 @@ fun dest_forall f =
       | _ => raise ERR ("not a universal",[],[],[f])
     end
 end
-
+*)
 
 
 local 
@@ -785,7 +785,28 @@ fun dest_forall f =
         in (ns',vsubst_bound ns' b)
         end)
       | _ => raise ERR ("not a universal",[],[],[f]))
+fun dest_exists f = 
+    (case f of 
+        Quant("?",n,s,b) =>
+        (((n,s),vsubst_bound (n,s) b)
+        handle CLASH  =>
+        let val ns' = dest_var (pvariantt (fvf f) (mk_var(n,s)))
+        in (ns',vsubst_bound ns' b)
+        end)
+      | _ => raise ERR ("not a existantial",[],[],[f]))
+fun dest_uex f = 
+    (case f of 
+        Quant("?!",n,s,b) =>
+        (((n,s),vsubst_bound (n,s) b)
+        handle CLASH  =>
+        let val ns' = dest_var (pvariantt (fvf f) (mk_var(n,s)))
+        in (ns',vsubst_bound ns' b)
+        end)
+      | _ => raise ERR ("not a uex",[],[],[f]))
 end
+
+
+
 
 (*think doing it the HOL way*)
 

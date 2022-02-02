@@ -1,0 +1,5 @@
+$(HOLDIR)/src/portableML/HOLPP
+$(HOLDIR)/src/portableML/HOLset
+$(HOLDIR)/src/portableML/HOLset
+$(HOLDIR)/src/portableML/Redblackset
+$(HOLDIR)/src/portableML/HOLset.sml

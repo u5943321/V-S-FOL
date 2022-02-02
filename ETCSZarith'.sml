@@ -12,7 +12,45 @@ e0
   !ab cd. rel o Pa(ab,cd) = TRUE <=> 
   Add(Fst(ab),Snd(cd)) = Add(Snd(ab),Fst(cd))”));
 
+
+(*thing to be defined should be on LHS Mul_def seems wrong direction*)
+
+
+(*
+
+!(ab : ar(1, N * N))  (cd : ar(1, N * N)).
+               ADD o
+                 Pa((p1(N, N) o p21(N * N, N * N)) o Pa(ab#, cd#), (p2(N, N)
+                  o p22(N * N, N * N)) o Pa(ab#, cd#)) = ADD o
+                 Pa((p2(N, N) o p21(N * N, N * N)) o Pa(ab#, cd#), (p1(N, N)
+                  o p22(N * N, N * N)) o Pa(ab#, cd#)) <=>
+               ADD o Pa(p1(N, N) o ab#, p2(N, N) o cd#) = ADD o
+                 Pa(p2(N, N) o ab#, p1(N, N) o cd#)
+
+edit pp after "," 
+
+*)
+val relJ_ex = prove_store("relJ_ex",
+e0
+(exists_tac $
+ form2IL [dest_var $ rastt "ab:1-> N * N",
+          dest_var $ rastt "cd:1-> N * N"] 
+ “Add(Fst(ab:1-> N * N),Snd(cd)) = Add(Snd(ab),Fst(cd))” >>
+ rw[o_assoc] >> rw[Pa_distr] >>
+ rw[Eq_property_TRUE] >> rw[GSYM Add_def] >>
+ rw[o_assoc] >> rw[Pa_distr] >>
+ rw[GSYM Fst_def] >> rw[GSYM Snd_def] >>
+ rw[GSYM p21_def,GSYM p22_def] >>
+ rw[o_assoc,p12_of_Pa])
+(form_goal
+ “?rel:(N * N) * N * N -> 1+1.
+  !ab cd. rel o Pa(ab,cd) = TRUE <=> 
+  Add(Fst(ab),Snd(cd)) = Add(Snd(ab),Fst(cd))”));
+
+
 val relJ_def = relJ_ex |> ex2fsym0 "relJ" []
+
+val _ = new_psym2IL ("Sim",(mk_fun "relJ" [],[]))
 
 val Sim_def = define_pred 
 “!X ab cd. Sim(ab,cd) <=> relJ o Pa(ab,cd) = True(X)”
@@ -22,7 +60,7 @@ val PZ_ex = prove_store("PZ_ex",
 e0
 (exists_tac $
  form2IL [dest_var $ rastt "pairs:1->Exp(N* N,1+1)"] 
- “?ab:1-> N * N. IN(ab,pairs) &
+ “?ab:1-> N * N. IN(ab,pairs:1->Exp(N* N,1+1)) &
       (!cd. IN(cd,pairs) <=> Sim(ab,cd))” >>
  rw[ALL_property,GSYM And_def,CONJ_def,o_assoc,Pa_distr,
     Eq_property_TRUE,GSYM Iff_def,IFF_def,
@@ -57,6 +95,23 @@ e0
   !pairs:1->Exp(N * N,1+1). P o pairs = TRUE <=>
   !ab cd. IN(ab,pairs) & IN(cd,pairs) ==> 
           Add(Fst(ab),Snd(cd)) = Add(Snd(ab),Fst(cd))”));
+
+
+
+val pred_define_Z_ex = prove_store("pred_define_Z_ex",
+e0
+(exists_tac $
+ form2IL [dest_var $ rastt "pairs:1->Exp(N* N,1+1)"] 
+ “!ab:1->N * N cd. IN(ab,pairs) & IN(cd,pairs) ==> 
+          Add(Fst(ab),Snd(cd)) = Add(Snd(ab),Fst(cd))” >>
+ rw[ALL_property,GSYM Imp_def,IMP_def,o_assoc,Pa_distr,
+    Eq_property_TRUE,GSYM And_def,CONJ_def,GSYM Fst_def,GSYM Snd_def,GSYM p31_def,GSYM p32_def,GSYM p33_def,o_assoc,Pa_distr,p12_of_Pa,GSYM Add_def,Pa_distr,GSYM IN_def1])
+(form_goal
+ “?P: Exp(N * N,1+1) -> 1+1.
+  !pairs:1->Exp(N * N,1+1). P o pairs = TRUE <=>
+  !ab cd. IN(ab,pairs) & IN(cd,pairs) ==> 
+          Add(Fst(ab),Snd(cd)) = Add(Snd(ab),Fst(cd))”));
+
 
 val pred_define_Z = pred_define_Z_ex |> ex2fsym0 "PZ" []
  
@@ -196,6 +251,25 @@ e0
   (?r1 r2. IN(r1,ps1) & IN(r2,ps2) & Addj(r1,r2) = ab)”));
 
 
+ rw[EX_property,GSYM And_def,Pa_distr,o_assoc,CONJ_def,Eq_property_TRUE,Pa_distr,Pa5_def,p52_of_Pa5,p53_of_Pa5,p54_of_Pa5,p51_of_Pa5,p55_of_Pa5,GSYM Addj_def,o_assoc,Pa_distr,p52_of_Pa5,p51_of_Pa5,IN_def,True1TRUE]
+
+
+val ADDs0_ex = prove_store("ADDs0_ex",
+e0
+(exists_tac $
+ form2IL [dest_var $ rastt "ab:1-> N * N",
+          dest_var $ rastt "ps1:1->Exp(N * N,1+1)",
+          dest_var $ rastt "ps2:1->Exp(N * N,1+1)"] 
+ “(?r1:1->N * N r2. IN(r1,ps1) & IN(r2,ps2) & Addj(r1,r2) = ab)” >>
+ rw[EX_property,GSYM And_def,Pa_distr,o_assoc,CONJ_def] (*slow*) >>
+ rw[Eq_property_TRUE,Pa_distr,Pa5_def,p52_of_Pa5,p53_of_Pa5] >> 
+ rw[p54_of_Pa5,p51_of_Pa5,p55_of_Pa5,GSYM Addj_def,o_assoc,Pa_distr,p52_of_Pa5,p51_of_Pa5,IN_def,True1TRUE])
+(form_goal
+ “?P: (N * N) * Exp(N * N,1+1) * Exp(N * N,1+1) -> 1+1.
+  !ab ps1 ps2. P o Pa(ab,Pa(ps1,ps2)) = TRUE <=> 
+  (?r1 r2. IN(r1,ps1) & IN(r2,ps2) & Addj(r1,r2) = ab)”));
+
+
 val ADDs0_def = ADDs0_ex |> ex2fsym0 "ADDs0" []
 
 val ADDs_ex = prove_store("ADDs_ex",
@@ -268,3 +342,10 @@ e0
   !pair:1->N * N. IN(pair,pairs) <=> 
   ?
   ”));
+
+
+
+
+“!P. ?pred. P(x) <=> pred o x = TRUE”
+
+“”

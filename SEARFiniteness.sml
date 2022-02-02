@@ -6,22 +6,22 @@
 !x. x\notin xs ==> Card( x INSERT xs) (n + 1)
 
 
-Card: Pow(X) -> N
+Card: Pow(X) ~> N
 
-can have a Card: Pow(X) -> N that map every infinite set to 0
+can have a Card: Pow(X) ~> N that map every infinite set to 0
 
 
 define a choice function that 
 
 
 
-CHOICE: Pow(A)->A.
+CHOICE: Pow(A)~>A.
 
 
 
 “@a.”
 
-Card: Fin(X) -> N
+Card: Fin(X) ~> N
 
 *)
 
@@ -221,7 +221,7 @@ conv_rule $ basic_once_fconv no_conv (rewr_fconv (eq_sym "mem"))
 val rel_ex_lemma = 
 fVar_Inst 
 [("P",([("n",mem_sort N),("xs",mem_sort $Pow (mk_set "X"))],
-“?r.Eval(i(X):U(X)-> N * Pow(X),r) = Pair(n,xs)”))]
+“?r.Eval(i(X):U(X)~> N * Pow(X),r) = Pair(n,xs)”))]
 (AX1 |> qspecl [‘N’,‘Pow(X)’]) |> uex_expand |> ex2fsym0 "hasCard" ["X"]
 |> conjE1
 |> conv_rule $ basic_once_fconv no_conv (rewr_fconv (spec_all IN_U))
@@ -259,7 +259,7 @@ conv_rule $ basic_once_fconv no_conv (rewr_fconv (eq_sym "mem"))
 val Card_lemma = 
 fVar_Inst 
 [("P",([("xs",mem_sort $Pow (mk_set "X")),("n",mem_sort N)],
-“?r.Eval(i(X):U(X)-> Pow(X) * N,r) = Pair(xs,n)”))]
+“?r.Eval(i(X):U(X)~> Pow(X) * N,r) = Pair(xs,n)”))]
 (AX1 |> qspecl [‘Pow(X)’,‘N’]) |> uex_expand |> ex2fsym0 "Card" ["X"]
 |> conjE1
 |> conv_rule $ basic_once_fconv no_conv (rewr_fconv (spec_all IN_U))
@@ -648,7 +648,7 @@ e0
 val rel_ex_lemma = 
 fVar_Inst 
 [("P",([("n",mem_sort N),("xs",mem_sort $Pow (mk_set "X"))],
-“?r.Eval(u0:U-> N * Pow(X),r) = Pair(n,xs)”))]
+“?r.Eval(u0:U~> N * Pow(X),r) = Pair(n,xs)”))]
 (AX1 |> qspecl [‘N’,‘Pow(X)’]) |> uex_expand
 val hasCard_ex = prove_store("hasCard_ex",
 e0

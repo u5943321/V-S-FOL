@@ -49,6 +49,13 @@ fun Pol l =
 fun mk_pj n1 n2 =
     mk_fun ("p" ^ (Int.toString n1) ^ (Int.toString n2))
 
+fun mk_pj n1 n2 =
+    if n1 = 1 andalso n2 = 1 then mk_fun "id" 
+    else if n1 = 2 andalso n2 = 1 then mk_fun "p1" 
+    else if n1 = 2 andalso n2 = 2 then mk_fun "p2"
+    else
+    mk_fun ("p" ^ (Int.toString n1) ^ (Int.toString n2))
+
 
 fun pos n l = 
     case l of 
@@ -152,10 +159,10 @@ fun inserts d l = List.foldr (fn ((a,b),d) => Binarymap.insert(d,a,b)) d l
 
 val psym2IL0 = inserts (Binarymap.mkDict String.compare)
 [("Le",(rastt "Char(LE)",[])),
- ("Lt",(rastt "Char(LT)",[])),
+ ("Lt",(rastt "Char(LT)",[])),(*
  ("HasCard",(rastt "hasCard(X)",
              [("xs",ar_sort (mk_ob "A") (rastt "Exp(X,1+1)")),
-              ("n",ar_sort (mk_ob "A") N)])),
+              ("n",ar_sort (mk_ob "A") N)])),*)
  ("Even",(rastt "EVEN",[])),
  ("IN",(rastt "Mem(X)",
         [("x",ar_sort (mk_ob "A") (mk_ob "X")),
@@ -294,7 +301,7 @@ term2IL bvs (rastt "n:1->N")
 
 
 
-
+(*
 
 Take R: A * A -> 2. R is equivalence relation. 
 Goal: 
@@ -350,3 +357,4 @@ new_abbr ("2",[]) ("+",[ONE,ONE])
 
 
 new_abbr ("Exp",[mk_ob "A",rastt "2"])
+*)

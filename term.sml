@@ -239,7 +239,7 @@ and term_cpr (t1,t2) =
     case (t1,t2) of 
         (Var (ns1 as (n1,s1)),Var (ns2 as (n2,s2))) =>  
         (case String.compare(n1,n2) of 
-            EQUAL => sort_compare (s1,s2)
+            EQUAL => sort_cpr (s1,s2)
           | x => x)
      | (Var _ , _) => LESS
      | (_,Var _) => GREATER

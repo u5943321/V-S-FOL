@@ -998,7 +998,7 @@ val FINITE_def = FINITE_def0 |> allE ONE
                              |> rewr_rule[True1TRUE]
                              |> store_as "FINITE_def";
 
-val FINITE_hasCard = Fin_Card |> rewr_rule[GSYM FINITE_def]
+val FINITE_hasCard = Fin_Card |> rewr_rule[GSYM FINITE_def];
 
 val Card_ex = prove_store("Card_ex",
 e0
@@ -1013,7 +1013,7 @@ e0
  ‘Or(And(isFinite(X) o p1(Exp(X,1+1),N),
          hasCard(X)),
      And(NEG o isFinite(X) o p1(Exp(X,1+1),N),Eq(N) o Pa(p2(Exp(X,1+1),N),O o To1(Exp(X,1+1) * N))))’ >> 
- rw[GSYM Or_def,o_assoc,Pa_distr,DISJ_def,GSYM And_def,CONJ_def,Eq_property_TRUE,NEG_def,TRUE_xor_FALSE,one_to_one_id,idR,p12_of_Pa,GSYM FINITE_def]
+ rw[GSYM Or_def,o_assoc,Pa_distr,DISJ_def,GSYM And_def,CONJ_def,Eq_property_TRUE,NEG_def,TRUE_xor_FALSE,(*one_to_one_id,*)idR,p12_of_Pa,GSYM FINITE_def] >> once_rw[one_to_one_id] >> rw[idR]
 (*
 
 

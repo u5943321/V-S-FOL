@@ -3,10 +3,15 @@ val AX4 = new_ax
  !n m. Eval(S0,n) = Eval(S0,m) <=> n = m”
 
 (*is it fair to add the constriction that no formula variable can occur in the input of define_pred, if not, we can write:
-!n. inN(n) <=> 
+!n. inN(n) <=>
     P(n0) &
     (!n0. P(n0) ==> P(Eval(S0,n0))) ==>
     P(n)
+
+!n.
+    P(n0) &
+    (!n0. P(n0) ==> P(Eval(S0,n0))) ==>
+    P(n) <=> inN(n)
 
 wrong because the "invisiable" quantifier of P is always on the outmost.
 

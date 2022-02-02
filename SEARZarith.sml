@@ -902,7 +902,7 @@ e0
 
 val _ = new_pred "Total" [("R",rel_sort (mk_set "A") (mk_set "A"))]
 
-val Total_def = store_ax("Total_def",“!A R:A->A.Total(R)<=> !a b. Holds(R,a,b) | Holds(R,b,a)”);
+val Total_def = store_ax("Total_def",“!A R:A~>A.Total(R)<=> !a b. Holds(R,a,b) | Holds(R,b,a)”);
 
 
 val LEz_Total = prove_store("LEz_Total",
