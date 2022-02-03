@@ -13,13 +13,6 @@ fun part_tmatch partfn th t =
 
 val rewr_conv = part_tmatch (fst o dest_eq o concl)
 
-fun rewr_conv th t = 
-    let val th1 = part_tmatch (fst o dest_eq o concl) th t 
-        val (l,r) = dest_eq (concl th1) 
-    in if l = r then raise ERR ("rewr_conv.loop",[],[t],[])
-       else th1
-    end
-
 
 
 (*operations on conv*)
