@@ -225,61 +225,6 @@ fun fmatch fm net =
 end;
 
 
-(*
-fun finsert (pair as (fm,_)) N =
-let 
-fun tenter _ _  (fLEAF _)= raise simple_fail "insert.LEAF: cannot insert"
-   | tenter defd tm (fNODE subnets) =
-      let val label = tlabel_of tm
-          val child = 
-             case Binarymap.peek(subnets,label) of
-                 NONE => fempty | SOME net => net
-          fun exec [] (fLEAF L)  = fLEAF (pair::L)
-            | exec [] (fNODE _)  = fLEAF [pair]
-            | exec (h::rst) net = tenter rst h net
-          val new_child =
-              case label
-               of tFn f =>  
-                  let val (_,_,ts) = dest_fun tm
-                  in if ts = [] then exec defd child
-                     else tenter ((tl ts) @ defd) (hd ts) child
-                  end
-              | _ => exec defd child
-      in
-         fNODE (Binarymap.insert(subnets,label,new_child))
-      end
-fun fenter _ _  (fLEAF _) = raise simple_fail ("finsert.LEAF: cannot insert")
-   | fenter defd fm (fNODE subnets) =
-      let val label = flabel_of fm
-          val child =
-             case Binarymap.peek(subnets,label) of NONE => fempty 
-                                        | SOME net => net
-          val new_child =
-            case label
-             of Cn co =>
-                if co = "~" then 
-                    fenter defd (dest_neg fm) child
-                else 
-                    let val (lf,rf) = dest_conn fm
-                    in fenter (rf::defd) lf child
-                    end
-              | Q _ => fenter defd (dest_quant fm) child
-              | Pr _ => let val (_,ts) = dest_pred fm 
-                        in tenter (tl ts) (hd ts) child 
-                        end
-              | _   => let fun exec [] (fLEAF L)  = fLEAF(pair::L)
-                             | exec [] (fNODE _)  = fLEAF[pair]
-                             | exec (h::rst) net = fenter rst h net
-                       in
-                          exec defd child
-                       end
-      in
-         fNODE (Binarymap.insert(subnets,label,new_child))
-      end
-in fenter [] fm N
-end;
-
-*)
 
 fun dest_any_pred fm = 
     case view_form fm of 
@@ -287,6 +232,9 @@ fun dest_any_pred fm =
       | _ => raise ERR ("dest_any_pred.not a pred or formula variable",[],[],[fm])
 
 (tenter (tl ts) (hd ts) child)
+
+
+datatype TorF = Tm of term | Fm of form
 
 fun finsert (pair as (fm,c)) N =
 let 
@@ -317,7 +265,9 @@ fun fenter _ _  (fLEAF _) = raise simple_fail ("finsert.LEAF: cannot insert")
              case Binarymap.peek(subnets,label) of NONE => fempty 
                                         | SOME net => net
           fun fexec [] (fLEAF L)  = fLEAF(c::L)
-            | fexec [] (fNODE nets)  = fLEAF[c]
+            | fexec [] (fNODE nets)  = 
+              if Binarymap.numItems nets = 0 then fLEAF[c]
+              else case Binary
             | fexec (h::rst) net = fenter rst h net
           val new_child =
             case label
@@ -330,26 +280,165 @@ fun fenter _ _  (fLEAF _) = raise simple_fail ("finsert.LEAF: cannot insert")
                     end
               | Q _ => fenter defd (dest_quant fm) child
               | Pr _ => let val (P,ts) = dest_pred fm 
-                        in if ts = [] then fexec defd child
-                           else case defd of 
-                                    [] =>
-                                    (tenter (tl ts) (hd ts) child) 
-                                  | h :: t => fenter t h (tenter (tl ts) (hd ts) child) 
+                            val net1 = exec ts child
+                        in fexec defd net1
                         end 
               | fV => let val (P,ts) = dest_fvar fm 
-                      in
+                          val net1 = fexec defd child
+                      in exec ts net1
+                      end 
+                     (* in
                           if ts = [] then fexec defd child
                         else case defd of 
                                     [] =>
                                     (tenter (tl ts) (hd ts) child) 
-                                  | h :: t => fenter t h (tenter (tl ts) (hd ts) child) 
-                        end 
+                                  | h :: t =>(* fenter t h (tenter (tl ts) (hd ts) child) *) tenter (tl ts) (hd ts) (fenter t h child)
+                        end  *)
       in
          fNODE (Binarymap.insert(subnets,label,new_child))
       end
 in fenter [] fm N
 end;
 
+
+
+
+
+
+fun finsert (pair as (fm,c)) N =
+let 
+fun tenter _ _ (fLEAF _) = raise simple_fail "insert.LEAF: cannot insert"
+   | tenter defd tm (fNODE subnets) =
+      let val label = tlabel_of tm
+          val child = 
+             case Binarymap.peek(subnets,label) of
+                 NONE => fempty | SOME net => net
+          fun exec [] (fLEAF L)  = fLEAF (c::L)
+            | exec [] (fNODE _)  = fLEAF [c]
+            | exec (h::rst) net = tenter rst h net
+          val new_child =
+              case label
+               of tFn f =>  
+                  let val (_,_,ts) = dest_fun tm
+                  in if ts = [] then exec defd child
+                     else tenter ((tl ts) @ defd) (hd ts) child
+                  end
+              | _ => exec defd child
+      in
+         fNODE (Binarymap.insert(subnets,label,new_child))
+      end
+fun fenter _ _  (fLEAF _) = raise simple_fail ("finsert.LEAF: cannot insert")
+   | fenter defd fm (fNODE subnets) =
+      let val label = flabel_of fm
+          val child =
+             case Binarymap.peek(subnets,label) of NONE => fempty 
+                                        | SOME net => net
+          fun fexec [] (fLEAF L)  = fLEAF(c::L)
+            | fexec [] (fNODE nets)  = 
+              if Binarymap.numItems nets = 0 then fLEAF[c]
+              else case Binary
+            | fexec (h::rst) net = fenter rst h net
+          val new_child =
+            case label
+             of Cn co =>
+                if co = "~" then 
+                    fenter defd (dest_neg fm) child
+                else 
+                    let val (lf,rf) = dest_conn fm
+                    in fenter (rf::defd) lf child
+                    end
+              | Q _ => fenter defd (dest_quant fm) child
+              | Pr _ => let val (P,ts) = dest_pred fm 
+                            val net1 = exec ts child
+                        in fexec defd net1
+                        end 
+              | fV => let val (P,ts) = dest_fvar fm 
+                          val net1 = fexec defd child
+                      in exec ts net1
+                      end 
+      in
+         fNODE (Binarymap.insert(subnets,label,new_child))
+      end
+and fun EXEC [] (fLEAF L)  = fLEAF(c::L)
+      |  [] (fNODE nets)  = fLEAF[c]
+      | exec (h::rst) net = 
+        case h of Tm t => tenter rst h net
+                | Fm f => fenter rst h net
+in fenter [] fm N
+end;
+
+
+
+fun finsert (pair as (fm,c)) N =
+let 
+fun tenter _ _ (fLEAF _) = raise simple_fail "insert.LEAF: cannot insert"
+   | tenter defd tm (fNODE subnets) =
+      let val label = tlabel_of tm
+          val child = 
+             case Binarymap.peek(subnets,label) of
+                 NONE => fempty | SOME net => net
+          val new_child =
+              case label
+               of tFn f =>  
+                  let val (_,_,ts) = dest_fun tm
+                  in if ts = [] then exec defd child
+                     else tenter ((List.map Tm (tl ts)) @ defd) (hd ts) child
+                  end
+              | _ => exec defd child
+      in
+         fNODE (Binarymap.insert(subnets,label,new_child))
+      end
+and fenter _ _  (fLEAF _) = raise simple_fail ("finsert.LEAF: cannot insert")
+   | fenter defd fm (fNODE subnets) =
+      let val label = flabel_of fm
+          val child =
+             case Binarymap.peek(subnets,label) of NONE => fempty 
+                                        | SOME net => net
+          val new_child =
+            case label
+             of Cn co =>
+                if co = "~" then 
+                    fenter defd (dest_neg fm) child
+                else 
+                    let val (lf,rf) = dest_conn fm
+                    in fenter ((Fm rf)::defd) lf child
+                    end
+              | Q _ => fenter defd (dest_quant fm) child
+              | Pr _ => let val (P,ts) = dest_pred fm 
+                        in exec ((List.map Tm ts) @ defd) child
+                        end 
+              | fV => let val (P,ts) = dest_fvar fm 
+                      in exec ((List.map Tm ts) @ defd) child
+                      end 
+              | _ => raise simple_fail "form expected"
+      in
+         fNODE (Binarymap.insert(subnets,label,new_child))
+      end
+and exec [] (fLEAF L)  = fLEAF(c::L)
+  | exec [] (fNODE nets)  = fLEAF[c]
+      | exec (h::rst) net = 
+        case h of Tm t => tenter rst t net
+                | Fm f => fenter rst f net
+in fenter [] fm N
+end;
+
+
+fun exec ([]:TorF list) (fLEAF [c:conv]) =  fLEAF[c]
+
+
+ val fm = ``P(a) & a = b``;
+val fm = P(a) & a = b: form
+> fenter [] fm fempty;
+val it = fNODE ?: fconv fnet
+> show_net it;
+val it =
+   fnode
+    [(Cn "&",
+      fnode
+       [(fV,
+         fnode
+          [(Pr "=", fnode [(tV, fnode [(tV, fleaf [fn])])]),
+           (tV, fleaf [fn])])])]: fconv fnet0
 
 
 datatype 'a fnet0
