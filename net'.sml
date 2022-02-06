@@ -67,7 +67,7 @@ end;
 
 
 
-fun insert (pair as (tm,_)) N =
+fun tinsert (pair as (tm,_)) N =
 let fun enter _ _  (LEAF _) = raise simple_fail "insert.LEAF: cannot insert"
    | enter defd tm (NODE subnets) =
       let val label = tlabel_of tm
@@ -314,12 +314,17 @@ fun cond_rewr_conv th t =
     in if l = r then raise ERR ("cond_rewr_conv.loop",[],[t],[])
        else th1
     end
-
-
+ 
+fun cond_rewr_fconv th f = 
+    let val th1 = rewr_fconv th f
+        val (l,r) = dest_dimp (concl th1) 
+    in if eq_form(l,r) then raise ERR ("cond_rewr_fconv.loop",[],[],[f])
+       else th1
+    end
 
 fun add_trewrites net thl = 
-    itlist insert
-                (List.map (fn th => ((#1 o dest_eq o concl) th, rewr_conv th)) (flatten (mapfilter rw_tcanon thl)))
+    itlist tinsert
+                (List.map (fn th => ((#1 o dest_eq o concl) th, cond_rewr_conv th)) (flatten (mapfilter rw_tcanon thl)))
                 net
 
 
@@ -327,7 +332,7 @@ fun add_trewrites net thl =
 
 fun add_frewrites fnet thl = 
     itlist finsert
-                (List.map (fn th => ((#1 o dest_dimp o concl) th, rewr_fconv th)) (flatten (mapfilter rw_fcanon thl)))
+                (List.map (fn th => ((#1 o dest_dimp o concl) th, cond_rewr_fconv th)) (flatten (mapfilter rw_fcanon thl)))
                 fnet
 
 
@@ -347,7 +352,7 @@ fun gen_rewrite_fconv (rw_func:conv-> fconv -> fconv) net fnet thl =
 
 
 fun REWR_FCONV thl = (gen_rewrite_fconv basic_fconv empty fempty thl)
-
+ 
 
 
 fun REWR_TAC thl = 
@@ -356,6 +361,43 @@ fconv_tac (gen_rewrite_fconv basic_fconv empty fempty thl)
 val rw = REWR_TAC
 
 
+basic_fconv no_conv 
+ (rewrites_fconv (add_frewrites fempty [o_assoc])) 
+“(h o f) o g = h o f o g”
+
+val w = 
+“p2(A, Exp(A, B)) o
+     Pa(p1(A, N), (Tp((h o l)) o Pa(id(N), Tp(f))) o p2(A, N)) =
+     p2(A, Exp(A, B)) o
+     Pa(p1(A, N * Exp(A, B)), (Tp((h o l)) o p2(A, N * Exp(A, B)))) o
+     Pa(p1(A, N), Pa(id(N), Tp(f)) o p2(A, N)) &
+   p1(A, Exp(A, B)) o
+     Pa(p1(A, N), (Tp((h o l)) o Pa(id(N), Tp(f))) o p2(A, N)) =
+     p1(A, Exp(A, B)) o
+     Pa(p1(A, N * Exp(A, B)), (Tp((h o l)) o p2(A, N * Exp(A, B)))) o
+     Pa(p1(A, N), Pa(id(N), Tp(f)) o p2(A, N))”
+
+val w0 = “p2(A, Exp(A, B)) o
+     Pa(p1(A, N), (Tp((h o l)) o Pa(id(N), Tp(f))) o p2(A, N)) =
+     p2(A, Exp(A, B)) o
+     Pa(p1(A, N * Exp(A, B)), (Tp((h o l)) o p2(A, N * Exp(A, B)))) o
+     Pa(p1(A, N), Pa(id(N), Tp(f)) o p2(A, N))
+     ”
+
+val w1 = “p2(A, Exp(A, B)) o
+     Pa(p1(A, N), (k o Pa(id(N), g)) o p2(A, N)) =
+     p2(A, Exp(A, B)) o
+     Pa(p1(A, N * Exp(A, B)), (k o p2(A, N * Exp(A, B)))) o
+     Pa(p1(A, N), Pa(id(N), g) o p2(A, N))”
 
 
+val w2 = “p2(A, Exp(A, B)) o
+     Pa(p1(A, N), (Tp((h o l)) o Pa(id(N), k)) o p2(A, N)) =
+     p2(A, Exp(A, B)) o
+     Pa(p1(A, N * Exp(A, B)), (Tp((h o l)) o p2(A, N * Exp(A, B)))) o
+     Pa(p1(A, N), Pa(id(N), k) o p2(A, N))
+     ”
 
+val n0 = (add_frewrites fempty [o_assoc])
+
+val _ = fmatch w0 n0
