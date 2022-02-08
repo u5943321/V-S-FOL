@@ -131,7 +131,7 @@ fun mk_fempty () = fNODE (Binarymap.mkDict flabel_cpr)
 (*fun is_fempty (fLEAF []) = true
   | is_fempty    _     = false; *)
 
-val fempty: (fconv fnet) = fNODE (Binarymap.mkDict flabel_cpr)
+val fempty: (fconv fnet) = fLEAF []
 
 fun is_fempty (fNODE nets) = Binarymap.numItems nets = 0
   | is_fempty _ = false
@@ -243,7 +243,8 @@ datatype TorF = Tm of term | Fm of form
 
 fun finsert (pair as (fm,c)) N =
 let
-fun tenter _ _ (fLEAF _) = raise simple_fail "insert.LEAF: cannot insert"
+fun  tenter defd tm (fLEAF []) = tenter defd tm (fNODE (Binarymap.mkDict flabel_cpr))
+   | tenter _ _ (fLEAF _) = raise simple_fail "insert.LEAF: cannot insert"
    | tenter defd tm (fNODE subnets) =
       let val label = tlabel_of tm
           val child =
@@ -260,7 +261,8 @@ fun tenter _ _ (fLEAF _) = raise simple_fail "insert.LEAF: cannot insert"
       in
          fNODE (Binarymap.insert(subnets,label,new_child))
       end
-and fenter _ _  (fLEAF _) = raise simple_fail ("finsert.LEAF: cannot insert")
+and fenter defd fm  (fLEAF []) = fenter defd fm (fNODE (Binarymap.mkDict flabel_cpr))
+   | fenter defd fm (fLEAF _) = raise simple_fail ("finsert.LEAF: cannot insert")
    | fenter defd fm (fNODE subnets) =
       let val label = flabel_of fm
           val child =
@@ -358,12 +360,8 @@ fun REWR_FCONV thl = (gen_rewrite_fconv basic_fconv empty fempty thl)
 fun REWR_TAC thl =
 fconv_tac (gen_rewrite_fconv basic_fconv empty fempty thl)
 
-val rw = REWR_TAC
+val rw = REWR_TAC;
 
-
-basic_fconv no_conv
- (rewrites_fconv (add_frewrites fempty [o_assoc]))
-“(h o f) o g = h o f o g”
 
 val w =
 “p2(A, Exp(A, B)) o
@@ -378,10 +376,10 @@ val w =
      Pa(p1(A, N), Pa(id(N), Tp(f)) o p2(A, N))”
 
 val w0 = “p2(A, Exp(A, B)) o
-     Pa(p1(A, N), (Tp((h o l)) o Pa(id(N), Tp(f))) o p2(A, N)) =
-     p2(A, Exp(A, B)) o
-     Pa(p1(A, N * Exp(A, B)), (Tp((h o l)) o p2(A, N * Exp(A, B)))) o
-     Pa(p1(A, N), Pa(id(N), Tp(f)) o p2(A, N))
+          Pa(p1(A, N), (Tp((h o l)) o Pa(id(N), Tp(f))) o p2(A, N)) =
+            p2(A, Exp(A, B)) o
+            Pa(p1(A, N * Exp(A, B)), (Tp((h o l)) o p2(A, N * Exp(A, B)))) o
+            Pa(p1(A, N), Pa(id(N), Tp(f)) o p2(A, N))
      ”
 
 val w1 = “p2(A, Exp(A, B)) o
@@ -400,4 +398,8 @@ val w2 = “p2(A, Exp(A, B)) o
 
 val n0 = (add_frewrites fempty [o_assoc])
 
-val _ = fmatch w0 n0
+val r0 = fmatch w0 n0
+val r1 = fmatch w1 n0
+val r2 = fmatch w2 n0
+
+fmatch “(Pa(f,g) o Pa(h,j)) o X = Pa(f,g) o (Pa(h,j) o X)” n0
