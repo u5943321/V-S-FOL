@@ -1,4 +1,5 @@
 use "master.ML";
+use "net'.sml";
 (* use "fVar_Inst.sml"; *)
 use "SEARsettings.sml";  
 use "SEARNarith.sml";

@@ -1,6 +1,6 @@
 structure tactic :> tactic = 
 struct
-open term form logic drule abbrev conv
+open term form logic drule abbrev conv Net
 
 fun empty th [] = th
   | empty th _ = raise simple_fail "empty" 
@@ -365,7 +365,7 @@ fun rw_tcanon th =
 tested rw_tcanon.
 *)
 
-
+(*
 fun is_refl_eq f = 
     if is_eq f then let val (l,r) = dest_eq f in if (*eq_term(dest_eq f)*) l = r  then true else false end
     else false
@@ -400,6 +400,8 @@ fun once_rw_tac thl =
         val fconv = first_fconv (mapfilter rewr_no_refl_fconv (flatten (mapfilter rw_fcanon thl)))
     in fconv_tac (basic_once_fconv conv fconv) 
     end
+
+*)
 
 (*TODO: !X (f : X# -> A)  (g : X# -> B). g# = p2 o pa(p1, p2, f#, g#)
 
@@ -480,12 +482,16 @@ fun rewr_no_loop_fconv th f =
        else th'
     end
 
+(*
+
 fun rw_tac thl:tactic = 
     let 
         val conv = first_conv (mapfilter rewr_no_refl_conv (flatten (mapfilter rw_tcanon thl)))
         val fconv = first_fconv (mapfilter rewr_no_refl_fconv (flatten (mapfilter rw_fcanon thl)))
     in fconv_tac (basic_fconv conv fconv) 
     end
+
+*)
 
 
 fun no_loop_rw thl:tactic = 
@@ -518,11 +524,11 @@ fun mp_tac th0 (G,asl,w) =
 
 fun assum_list aslfun (g as (_,asl, _)) = aslfun (List.map assume asl) g
 
-fun arw_tac thl = assum_list (fn l => rw_tac (l @ thl))
+(*fun arw_tac thl = assum_list (fn l => rw_tac (l @ thl))*)
 
 fun no_loop_arw thl = assum_list (fn l => no_loop_rw (l @ thl))
 
-fun once_arw_tac thl = assum_list (fn l => once_rw_tac (l @ thl))
+(*fun once_arw_tac thl = assum_list (fn l => once_rw_tac (l @ thl))*)
 
 fun pop_assum_list (asltac:thm list -> tactic):tactic = 
     fn (G,asl, w) => asltac (List.map assume asl) (G,[], w) 
@@ -854,10 +860,10 @@ fun remove_asm_tac f: tactic =
        else raise ERR ("assumption to be removed is not in the assumption list",[],[],[f])
 
  
-
+(*
 val once_rwl_tac = map_every (fn th => once_rw_tac[th])
 val once_arwl_tac = map_every (fn th => once_arw_tac[th])
-
+*)
 
 
 fun disch_then (ttac: thm_tactic): tactic = 
@@ -880,33 +886,6 @@ fun disch_tac g = disch_then assume_tac g
 fun simp_asm thms (t, l') = rewr_rule (l' @ thms) t :: l'
 
 
-
-fun f r (tac:thm_tactic) thms asms:tactic = 
-    map_every tac (r (List.foldl (simp_asm thms) [] (r asms)))
-
-fun gen_full_simp_tac r tac thms =
-    pop_assum_list (f r tac thms) then_tac arw_tac thms
- 
-val full_tac = gen_full_simp_tac Lib.I
-val rev_full_tac = gen_full_simp_tac List.rev
-
-fun full_simp_tac thms = 
-    pop_assum_list (f Lib.I strip_assume_tac thms) then_tac arw_tac thms
-
-fun rev_full_simp_tac thms = 
-    pop_assum_list (f List.rev strip_assume_tac thms) then_tac arw_tac thms
-
-
-
-val cheat:tactic = fn (ct,asl,w) => ([], fn _ => mk_thm(ct,asl,w))
-
-
-val rw = rw_tac
-val arw = arw_tac
-val once_rw = once_rw_tac
-val once_arw = once_arw_tac
-
-val fs = full_simp_tac
 val rpt = repeat  
 
 fun existsl_tac l = map_every (exists_tac) l
@@ -927,6 +906,113 @@ fun sspecl_then tl (ttac: thm_tactic): thm_tactic =
     fn th => ttac (sspecl tl th)
 
 (*val qsspecl_then = qterml_tcl sspecl_then *)
+
+
+
+
+
+fun cond_rewr_conv th t =
+    let val th1 = rewr_conv th t
+        val (l,r) = dest_eq (concl th1)
+    in if l = r then raise ERR ("cond_rewr_conv.loop",[],[t],[])
+       else th1
+    end
+
+fun cond_rewr_fconv th f =
+    let val th1 = rewr_fconv th f
+        val (l,r) = dest_dimp (concl th1)
+    in if eq_form(l,r) then raise ERR ("cond_rewr_fconv.loop",[],[],[f])
+       else th1
+    end
+
+fun add_trewrites net thl =
+    itlist tinsert
+                (List.map (fn th => ((#1 o dest_eq o concl) th, cond_rewr_conv th)) (flatten (mapfilter rw_tcanon thl)))
+                net
+
+
+
+
+fun add_frewrites fnet thl =
+    itlist finsert
+                (List.map (fn th => ((#1 o dest_dimp o concl) th, cond_rewr_fconv th)) (flatten (mapfilter rw_fcanon thl)))
+                fnet
+
+
+
+fun rewrites_conv net tm = first_conv (match tm net) tm
+
+fun rewrites_fconv fnet fm = first_fconv (fmatch fm fnet) fm
+
+
+fun gen_rewrite_conv (rw_func:conv -> conv) net thl =
+    rw_func (rewrites_conv (add_trewrites net thl))
+
+fun gen_rewrite_fconv (rw_func:conv-> fconv -> fconv) net fnet thl =
+   rw_func (rewrites_conv (add_trewrites net thl))
+           (rewrites_fconv (add_frewrites fnet thl));
+
+
+
+fun REWR_FCONV thl = (gen_rewrite_fconv basic_fconv Net.empty fempty thl)
+
+fun ONCE_REWR_FCONV thl = (gen_rewrite_fconv basic_once_fconv Net.empty fempty thl)
+
+
+
+fun REWR_TAC thl =
+fconv_tac (gen_rewrite_fconv basic_fconv Net.empty fempty thl)
+
+
+fun ONCE_REWR_TAC thl =
+fconv_tac (gen_rewrite_fconv basic_once_fconv Net.empty fempty thl)
+
+val rw = REWR_TAC; 
+
+fun arw thl = assum_list (fn l => rw (l @ thl));
+
+val once_rw = ONCE_REWR_TAC; 
+
+fun once_arw thl = assum_list (fn l => once_rw (l @ thl));
+
+val rw_tac = rw;
+
+val once_rw_tac = once_rw;
+
+
+val arw_tac = arw;
+
+val once_arw_tac = once_arw;
+
+
+fun f r (tac:thm_tactic) thms asms:tactic = 
+    map_every tac (r (List.foldl (simp_asm thms) [] (r asms)))
+
+fun gen_full_simp_tac r tac thms =
+    pop_assum_list (f r tac thms) then_tac arw_tac thms
+ 
+val full_tac = gen_full_simp_tac Lib.I
+val rev_full_tac = gen_full_simp_tac List.rev
+
+fun full_simp_tac thms = 
+    pop_assum_list (f Lib.I strip_assume_tac thms) then_tac arw_tac thms
+
+fun rev_full_simp_tac thms = 
+    pop_assum_list (f List.rev strip_assume_tac thms) then_tac arw_tac thms
+
+
+
+val cheat:tactic = fn (ct,asl,w) => ([], fn _ => mk_thm(ct,asl,w))
+
+(*
+val rw = rw_tac
+val arw = arw_tac
+val once_rw = once_rw_tac
+val once_arw = once_arw_tac
+*)
+
+
+val fs = full_simp_tac
 
 
 end

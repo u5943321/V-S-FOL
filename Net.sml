@@ -1,166 +1,38 @@
-
-
-open Lib Feedback KernelTypes
-
-val ERR = mk_HOL_ERR "Net";
-
-
-
-fun mk_clos (s, Bv i) =
-      (case (Subst.exp_rel(s,i))
-        of (0, SOME t) => t
-         | (k, SOME t) => mk_clos (Subst.shift(k,Subst.id), t)
-         | (v, NONE)   => Bv v)
-  | mk_clos (s, t as Fv _)     = t
-  | mk_clos (s, t as Const _)  = t
-  | mk_clos (s,Clos(Env,Body)) = Clos(Subst.comp mk_clos (s,Env), Body)
-  | mk_clos (s,t)              = Clos(s, t)
-;
-
-fun push_clos (Clos(E, Comb(f,x))) = Comb(mk_clos(E,f), mk_clos(E,x))
-  | push_clos (Clos(E, Abs(v,M)))  = Abs(v, mk_clos (Subst.lift(1,E),M))
-  | push_clos _ = raise ERR "push_clos" "not a subst"
-;
-
-
-
-local
-open KernelSig
-in
-fun break_abs(Abs(_,Body)) = Body
-  | break_abs(t as Clos _) = break_abs (push_clos t)
-  | break_abs _ = raise ERR "break_abs" "not an abstraction";
-
-fun dest_thy_const (Const(id,ty)) =
-      let val {Name,Thy} = name_of_id id
-      in {Thy=Thy, Name=Name, Ty=to_hol_type ty}
-      end
-  | dest_thy_const _ = raise ERR"dest_thy_const" "not a const"
-
-fun break_const (Const p) = (I##to_hol_type) p
-  | break_const _ = raise ERR "break_const" "not a const"
-
-fun dest_const (Const(id,ty)) = (name_of id, to_hol_type ty)
-  | dest_const _ = raise ERR "dest_const" "not a const"
-end
-
-
-
-datatype label
-    = V
-    | Cmb
-    | Lam
-    | Cnst of string * string ;  (* name * segment *)
-
+structure Net :> Net = 
+struct
+open term form
 
 datatype tlabel
     = V
-    | Fn
+    | Fn of string
 
 
-
-datatype flabel
-    = Q
-    | Conn
-    | fV
-    | Pr
-
-
-
-
-(*---------------------------------------------------------------------------*
- *   Tags corresponding to the underlying term constructors.                 *
- *---------------------------------------------------------------------------*)
-
-datatype label
-    = V
-    | Cmb
-    | Lam
-    | Cnst of string * string ;  (* name * segment *)
-
-(*---------------------------------------------------------------------------*
- *    Term nets.                                                             *
- *---------------------------------------------------------------------------*)
-
-datatype 'a net
+datatype 'a tnet
     = LEAF of (term * 'a) list
-    | NODE of (label * 'a net) list;
+    | NODE of (tlabel * 'a tnet) list;
 
+
+
+fun tlabel_of tm =
+   if is_var tm then V else
+   let val (f,_,_) = dest_fun tm
+   in Fn f
+   end
 
 val empty = NODE [];
 
 fun is_empty (NODE[]) = true
   | is_empty    _     = false;
 
-(*---------------------------------------------------------------------------*
- * Determining the top constructor of a term. The following is a bit         *
- * convoluted, since doing a dest_abs requires a full traversal to replace   *
- * the bound variable with a free one. Therefore we make a separate check    *
- * for abstractions.                                                         *
- *---------------------------------------------------------------------------*)
-
-
-
-fun is_bvar (Bv _)    = true | is_bvar _  = false;
-fun is_var  (Fv _)    = true | is_var _   = false;
-fun is_const(Const _) = true | is_const _ = false;
-fun is_comb(Comb _) = true | is_comb(Clos(_,Comb _)) = true | is_comb _ = false
-fun is_abs(Abs _) = true | is_abs(Clos(_,Abs _)) = true | is_abs _ = false;
-
-
-
-
-fun label_of tm =
-   if is_abs tm then Lam else
-   if is_bvar tm orelse is_var tm then V else
-   if is_comb tm then Cmb
-   else let val {Name,Thy,...} = dest_thy_const tm
-        in Cnst (Name,Thy)
-        end
-
 
 fun net_assoc label =
- let fun get (LEAF _) = raise ERR "net_assoc" "LEAF: no children"
+ let fun get (LEAF _) = raise simple_fail "net_assoc.LEAF: no children"
        | get (NODE subnets) =
             case assoc1 label subnets
              of NONE => empty
               | SOME (_,net) => net
  in get
  end
-
-
-fun dest_comb (Comb r) = r
-  | dest_comb (t as Clos _) = dest_comb (push_clos t)
-  | dest_comb _ = raise ERR "dest_comb" "not a comb"
-
-
-local
-  fun mtch tm (NODE []) = []
-    | mtch tm net =
-       let val label = label_of tm
-           val Vnet = net_assoc V net
-           val nets =
-            case label
-             of V => []
-              | Cnst _ => [net_assoc label net]
-              | Lam    => mtch (break_abs tm) (net_assoc Lam net)
-              | Cmb    => let val (Rator,Rand) = dest_comb tm
-                          in itlist(append o mtch Rand)
-                                   (mtch Rator (net_assoc Cmb net)) []
-                           end
-       in itlist (fn NODE [] => I | net => cons net) nets [Vnet]
-       end
-in
-fun match tm net =
-  if is_empty net then []
-  else
-    itlist (fn LEAF L => append (map #2 L) | _ => fn y => y)
-           (mtch tm net) []
-end;
-
-(*---------------------------------------------------------------------------*
- *        Adding to a term net.                                              *
- *---------------------------------------------------------------------------*)
 
 fun overwrite (p as (a,_)) =
   let fun over [] = [p]
@@ -169,73 +41,272 @@ fun overwrite (p as (a,_)) =
   in over
   end;
 
-fun insert (p as (tm,_)) N =
-let fun enter _ _  (LEAF _) = raise ERR "insert" "LEAF: cannot insert"
+
+
+local
+  fun mtch tm (NODE []) = []
+    | mtch tm net =
+       let val label = tlabel_of tm
+           val Vnet = net_assoc V net
+           val nets =
+            case label
+             of V => []
+              | Fn f =>
+                let val (_,s,ts) = dest_fun tm
+                    val net0 = net_assoc label net
+                in itlist mtchs (rev ts) [net0]
+                end
+       in itlist (fn NODE [] => I | net => cons net) nets [Vnet]
+       end
+  and mtchs t [] = []
+    | mtchs t (nhd :: ntl) = append (mtch t nhd) (mtchs t ntl)
+in
+fun match tm net =
+  if is_empty net then []
+  else
+    itlist (fn LEAF L => append (List.map #2 L) | _ => fn y => y)
+           (mtch tm net) []
+end;
+
+
+
+fun tinsert (pair as (tm,_)) N =
+let fun enter _ _  (LEAF _) = raise simple_fail "insert.LEAF: cannot insert"
    | enter defd tm (NODE subnets) =
-      let val label = label_of tm
+      let val label = tlabel_of tm
           val child =
              case assoc1 label subnets of NONE => empty | SOME (_,net) => net
+          fun exec [] (LEAF L)  = LEAF(pair::L)
+            | exec [] (NODE _)  = LEAF[pair]
+            | exec (h::rst) net = enter rst h net
           val new_child =
-            case label
-             of Cmb => let val (Rator,Rand) = dest_comb tm
-                       in enter (Rand::defd) Rator child end
-              | Lam => enter defd (break_abs tm) child
-              | _   => let fun exec [] (LEAF L)  = LEAF(p::L)
-                             | exec [] (NODE _)  = LEAF[p]
-                             | exec (h::rst) net = enter rst h net
-                       in
-                          exec defd child
-                       end
+              case label
+               of Fn f =>
+                  let val (_,_,ts) = dest_fun tm
+                  in if ts = [] then exec defd child
+                     else enter ((tl ts) @ defd) (hd ts) child
+                  end
+              | _ => exec defd child
       in
          NODE (overwrite (label,new_child) subnets)
       end
 in enter [] tm N
 end;
 
-val t0 = Fv ("x",Tyv "b")
-
-val n0 = insert (t0,t0) empty;
-
-val t1 = Abs (Fv ("f",Tyv "a"),Fv ("x",Tyv "b"))
-
-val n1 = insert (t1,t1) n0;
-
-val t2 = Abs (Comb (Fv ("f",Tyv "a"),Fv ("f",Tyv "a'")),Fv ("x",Tyv "b"))
-
-val n2 = insert (t2,t2) n1;
-
-val t3 = Abs (Fv ("x",Tyv "b"),Comb (Fv ("f",Tyv "a"),Fv ("f",Tyv "a'")))
-
-val n3 = insert (t3,t3) n2;
-
-val t4 = Abs (Fv ("x",Tyv "b"),Comb (Abs (Fv ("f",Tyv "a"),Fv ("x",Tyv "b")),Fv ("f",Tyv "a'")))
-
-val n4 = insert (t4,t4) n3;
-
-val t5 = Comb (Abs (Fv ("f",Tyv "a"),Fv ("x",Tyv "b")),Fv ("f",Tyv "a'"))
-
-val n5 = insert (t5,t5) n4;
-
-val t6 = Comb (Fv ("f",Tyv "a'"),Abs (Fv ("f",Tyv "a"),Fv ("x",Tyv "b")))
-
-val n6 = insert (t6,t6) n5;
 
 
-val t1 = (Comb (Abs (Fv ("f",Tyv "a"),Fv ("x",Tyv "b")),Fv ("k",Tyv "b")))
-
-val t2 = Abs (Fv ("f",Tyv "a"),Fv ("x",Tyv "b"))
-
-val t3 = Abs (Fv ("f",Tyv "b"),Fv ("x",Tyv "b"))
-
-val t4 = Abs (Abs (Fv ("f",Tyv "a"),Fv ("x",Tyv "b")),Fv ("k",Tyv "b"))
-
-val t5 = Abs (Abs (Fv ("f",Tyv "a"),Fv ("x",Tyv "b")),
-              Abs (Fv ("f",Tyv "a"),Fv ("x",Tyv "k")))
+datatype flabel
+    = Q of string
+    | Cn of string
+    | fV
+    | Pr of string
+    | tV
+    | tFn of string
 
 
-GEN_REWRITE_CONV Conv.TOP_DEPTH_CONV
- (implicit_rewrites()) thl
-= 
- Conv.TOP_DEPTH_CONV (REWRITES_CONV (add_rewrites  (implicit_rewrites()) thl));
+datatype 'a fnet
+    = fLEAF of 'a list
+    | fNODE of (flabel,'a fnet) Binarymap.dict;
 
-“isLim(fam)”
+fun flabel_cpr p =
+    case p of
+        (Q s1,Q s2) => String.compare (s1,s2)
+      | (Q _,_) => LESS
+      | (_,Q _) => GREATER
+      | (Cn s1,Cn s2) => String.compare (s1,s2)
+      | (Cn _,_) => LESS
+      | (_,Cn _) => GREATER
+      | (Pr s1,Pr s2) => String.compare (s1,s2)
+      | (Pr _,_) => LESS
+      | (_,Pr _) => GREATER
+      | (tFn s1,tFn s2) => String.compare (s1,s2)
+      | (tFn _,_) => LESS
+      | (_,tFn _) => GREATER
+      | (tV,fV) => LESS
+      | (fV,tV) => GREATER
+      | _ => EQUAL
+
+
+(*val fempty = fLEAF [] *)
+
+fun mk_fempty () = fNODE (Binarymap.mkDict flabel_cpr)
+
+(*fun is_fempty (fLEAF []) = true
+  | is_fempty    _     = false; *)
+
+val fempty: (fconv fnet) = fLEAF []
+
+fun is_fempty (fNODE nets) = Binarymap.numItems nets = 0
+  | is_fempty _ = false
+
+
+
+fun flabel_of fm =
+    case view_form fm of
+        vPred (P,true,_) => Pr P
+      | vPred (P,false,_) => fV
+      | vConn(co,_) => Cn co
+      | vQ(q,_,_,_) => Q q
+
+fun tlabel_of tm =
+    case view_term tm of
+        vVar _ => tV
+     | vFun(f,_,_) => tFn f
+     | _ => raise Fail "cannot label bounded var"
+
+
+fun fnet_assoc label =
+ let fun get (fLEAF _) = raise simple_fail "fnet.assoc: LEAF: no children"
+       | get (fNODE subnets) =
+            case Binarymap.peek(subnets,label)
+             of NONE => fempty
+              | SOME net => net
+ in get
+ end
+
+fun dest_quant f =
+    case view_form f of
+        vQ(_,_,_,b) => b
+      | _ => raise ERR ("dest_quant.not a quantified formula",[],[],[f])
+
+
+fun dest_conn f =
+    case view_form f of
+        vConn(co,[f1,f2]) => (f1,f2)
+      | _ => raise ERR ("dest_conn.not a (binary) connective",[],[],[f])
+
+
+
+
+local
+    fun tmtch tm (fLEAF []) = []
+      | tmtch tm net =
+        let val label = tlabel_of tm
+            val Vnet = fnet_assoc tV net
+            val nets =
+                case label
+                 of tV => []
+                  | tFn f =>
+                    let val (_,s,ts) = dest_fun tm
+                        val net0 = fnet_assoc label net
+                    in itlist tmtchs (rev ts) [net0]
+                    end
+                  | _ => raise Fail "should be a term"
+        in itlist (fn fLEAF [] => I | net => cons net) nets [Vnet]
+        end
+  and tmtchs t [] = []
+    | tmtchs t (nhd :: ntl) = append (tmtch t nhd) (tmtchs t ntl)
+  fun fmtch fm (fLEAF []) = []
+    | fmtch fm net =
+       let val label = flabel_of fm
+           val Vnet = fnet_assoc fV net
+           val nets =
+            case label
+             of fV => let val (_,ts) = dest_fvar fm
+                            val net0 = fnet_assoc label net
+                        in itlist tmtchs (rev ts) [net0]
+                        end
+              | Pr _ => let val (_,ts) = dest_pred fm
+                            val net0 = fnet_assoc label net
+                        in itlist tmtchs (rev ts) [net0]
+                        end
+              | Q _    => fmtch (dest_quant fm) (fnet_assoc label net)
+              | Cn co   =>
+                if co = "~" then
+                    fmtch (dest_neg fm) (fnet_assoc label net)
+                else
+                    let val (lf,rf) = dest_conn fm
+                          in itlist(append o fmtch rf)
+                                   (fmtch lf (fnet_assoc label net)) []
+                           end
+              | _ => raise Fail "should be a form"
+       in itlist (fn fLEAF [] => I | net => cons net) nets [Vnet]
+       end
+in
+fun fmatch fm net =
+  if is_fempty net then []
+  else
+    itlist (fn fLEAF L => append L | _ => fn y => y)
+           (fmtch fm net) []
+end;
+
+
+
+fun dest_any_pred fm =
+    case view_form fm of
+        vPred (p,_,ts) => (p,ts)
+      | _ => raise ERR ("dest_any_pred.not a pred or formula variable",[],[],[fm])
+
+
+
+datatype TorF = Tm of term | Fm of form
+
+
+
+
+fun finsert (pair as (fm,c)) N =
+let
+fun  tenter defd tm (fLEAF []) = tenter defd tm (fNODE (Binarymap.mkDict flabel_cpr))
+   | tenter _ _ (fLEAF _) = raise simple_fail "insert.LEAF: cannot insert"
+   | tenter defd tm (fNODE subnets) =
+      let val label = tlabel_of tm
+          val child =
+             case Binarymap.peek(subnets,label) of
+                 NONE => fempty | SOME net => net
+          val new_child =
+              case label
+               of tFn f =>
+                  let val (_,_,ts) = dest_fun tm
+                  in if ts = [] then exec defd child
+                     else tenter ((List.map Tm (tl ts)) @ defd) (hd ts) child
+                  end
+              | _ => exec defd child
+      in
+         fNODE (Binarymap.insert(subnets,label,new_child))
+      end
+and fenter defd fm  (fLEAF []) = fenter defd fm (fNODE (Binarymap.mkDict flabel_cpr))
+   | fenter defd fm (fLEAF _) = raise simple_fail ("finsert.LEAF: cannot insert")
+   | fenter defd fm (fNODE subnets) =
+      let val label = flabel_of fm
+          val child =
+             case Binarymap.peek(subnets,label) of NONE => fempty
+                                        | SOME net => net
+          val new_child =
+            case label
+             of Cn co =>
+                if co = "~" then
+                    fenter defd (dest_neg fm) child
+                else
+                    let val (lf,rf) = dest_conn fm
+                    in fenter ((Fm rf)::defd) lf child
+                    end
+              | Q _ => fenter defd (dest_quant fm) child
+              | Pr _ => let val (P,ts) = dest_pred fm
+                        in exec ((List.map Tm ts) @ defd) child
+                        end
+              | fV => let val (P,ts) = dest_fvar fm
+                      in exec ((List.map Tm ts) @ defd) child
+                      end
+              | _ => raise simple_fail "form expected"
+      in
+         fNODE (Binarymap.insert(subnets,label,new_child))
+      end
+and exec [] (fLEAF L)  = fLEAF(c::L)
+  | exec [] (fNODE nets)  = fLEAF[c]
+      | exec (h::rst) net =
+        case h of Tm t => tenter rst t net
+                | Fm f => fenter rst f net
+in fenter [] fm N
+end;
+
+datatype 'a fnet0
+    = fleaf of 'a list
+    | fnode of (flabel * 'a fnet0) list;
+
+fun show_net (fLEAF l) = fleaf l
+  | show_net (fNODE dict) =
+    let val nets = Binarymap.listItems dict
+        val nets0 = List.map (fn (a,b) => (a,show_net b)) nets
+    in fnode nets0
+    end
+end

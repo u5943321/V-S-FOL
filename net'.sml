@@ -355,12 +355,38 @@ fun gen_rewrite_fconv (rw_func:conv-> fconv -> fconv) net fnet thl =
 
 fun REWR_FCONV thl = (gen_rewrite_fconv basic_fconv empty fempty thl)
 
+fun ONCE_REWR_FCONV thl = (gen_rewrite_fconv basic_once_fconv empty fempty thl)
+
 
 
 fun REWR_TAC thl =
 fconv_tac (gen_rewrite_fconv basic_fconv empty fempty thl)
 
-val rw = REWR_TAC;
+
+fun ONCE_REWR_TAC thl =
+fconv_tac (gen_rewrite_fconv basic_once_fconv empty fempty thl)
+
+val rw = REWR_TAC; 
+
+fun arw thl = assum_list (fn l => rw (l @ thl));
+
+val once_rw = ONCE_REWR_TAC; 
+
+fun once_arw thl = assum_list (fn l => once_rw (l @ thl));
+
+(*
+
+rw[GSYM And_def,o_assoc,Pa_distr,CONJ_def,GSYM Not_def,NEG_def,TRUE_xor_FALSE,GSYM EQ_def,Eq_property_TRUE,idR,p12_of_Pa]>>
+  once_rw[one_to_one_id] >> rw[idR,p12_of_Pa]
+
+
+
+fun once_rw thl = 
+    let 
+        val conv = first_conv (mapfilter rewr_no_refl_conv (flatten (mapfilter rw_tcanon thl)))
+        val fconv = first_fconv (mapfilter rewr_no_refl_fconv (flatten (mapfilter rw_fcanon thl)))
+    in fconv_tac (basic_once_fconv conv fconv) 
+    end
 
 
 val w =
@@ -402,4 +428,41 @@ val r0 = fmatch w0 n0
 val r1 = fmatch w1 n0
 val r2 = fmatch w2 n0
 
+Cat
+
+Ob Ar
+
+Func
+
+NatTrans:Fun() -> Fun
+
+F:NatTrans(Fun(f:A:Cat->B:Cat),Fun(g:A->B))
+
 fmatch “(Pa(f,g) o Pa(h,j)) o X = Pa(f,g) o (Pa(h,j) o X)” n0
+
+CT thm 
+“!C:cat. isTopos(C) ==> hasPushout(C)”
+
+Ob(C) Ar(A:Ob(C),B:(Ob(C)))
+
+f:2-> A
+
+f:Ar(A_1:Ob(C),A_2:Ob(C))
+
+
+
+
+g:2-> A
+
+g:Ar(A_2,A_3)
+
+?fg:2->A. 
+
+
+
+
+
+“!f g. haspushout(f,g)”
+
+
+*)

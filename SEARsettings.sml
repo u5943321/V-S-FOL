@@ -29,7 +29,7 @@ fun fVar_Inst_f (pair as (P,(argl:(string * sort) list,Q))) f =
 *)
 
 
-fun fVar_Inst_th (pair as (P,(argl:(string * sort) list,Q))) th = 
+fun fVar_Inst_th (pair as (P,(argl:(string * sort) list,Q0))) th = 
     let val (ct,asl,w) = dest_thm th
         val asl' = List.map (form.fVar_Inst_f pair) asl
         val w' = form.fVar_Inst_f pair w
@@ -106,12 +106,12 @@ fun MAP f l =
 
 
 
-fun fVar_Inst_th (pair as (P,(argl:(string * sort) list,Q))) th = 
+fun fVar_Inst_th (pair as (P,(argl:(string * sort) list,Q0))) th = 
     let val (ct,asl,w) = dest_thm th
         val lcs = List.foldr
                       (fn (ns,nss) => HOLset.delete(nss,ns)
                                       handle _ => nss) 
-                      (fvf Q) argl
+                      (fvf Q0) argl
         val ct' = HOLset.union(ct,lcs)
         val aslw' = MAP (fVar_Inst_f pair) (w :: asl)
     in mk_thm (ct',tl aslw',hd aslw')

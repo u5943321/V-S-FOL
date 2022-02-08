@@ -28,10 +28,11 @@ open token;
 use "pterm_dtype.sml";
 open pterm_dtype;
 
-
+(*
 use "parser.sig";
 use "parser.sml";
 open parser;
+*)
 
 
 use "drule.sig";
@@ -49,12 +50,20 @@ use "conv.sig";
 use "conv.sml";
 open conv;
 
+use "Net.sig"; 
+use "Net.sml";
+open Net;
+
 
 
 use "tactic.sig";
 use "tactic.sml";
 open tactic;
+ 
 
+use "parser.sig";
+use "parser.sml";
+open parser;
 
 
 
@@ -64,6 +73,7 @@ open goalstack;
 
 use "iffLR.sml";
 use "irule_canon.sml";
+
 
 use "Q.sig";
 use "Q.sml";
