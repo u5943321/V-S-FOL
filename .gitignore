@@ -1,7 +1,3 @@
-
-*.sml~
-*.ML~
-*.tex~
+*~
 *.sml#
-.#reln.sml
-.#SEARwfun.sml
+.#*
