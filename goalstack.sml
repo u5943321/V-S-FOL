@@ -56,7 +56,7 @@ fun return(GSTK{stack={goals=[],validation}::rst, prop as POSED g}) =
     end
   | return gstk = gstk
 
-fun say s = Lib.say s
+fun say s = print s
 
 fun add_string_cr s = say (s^"\n")
 fun cr_add_string_cr s = say ("\n"^s^"\n")
@@ -72,7 +72,7 @@ fun expand_msg dpth (GSTK{prop = PROVED _, ...}) = ()
                      (case (length goals)
                        of 0 => imp_err "1"
                         | 1 => "1 subgoal:"
-                        | n => (int_to_string n)^" subgoals:")
+                        | n => Int.toString n^" subgoals:")
             else imp_err "2"
        else cr_add_string_cr "Remaining subgoals:"
     end
@@ -92,8 +92,8 @@ fun expandf _ (GSTK{prop=PROVED _, ...}) =
 fun e0 tac = expandf (valid tac) 
 
 
-fun ppintf (n,f) = add_string (int_to_string n) >> add_string"." >> 
-                              block HOLPP.CONSISTENT 10 (ppform false (LR (NONE,NONE)) f)
+fun ppintf (n,f) = add_string (Int.toString n) >> add_string"." >>
+                   block HOLPP.CONSISTENT 10 (ppform false (LR (NONE,NONE)) f)
 
 fun n2l n = 
     if n > 0 then n :: (n2l (n - 1)) else [] 
