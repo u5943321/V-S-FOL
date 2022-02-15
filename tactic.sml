@@ -119,7 +119,7 @@ fun match_mp_tac th (ct:cont,asl:form list,w) =
         val (ant,conseq) = dest_imp impl
         val (con,cvs) = strip_forall (conseq)
         val th1 = (C specl) (undisch ((C specl) th (List.map mk_var gvs))) (List.map mk_var cvs) 
-        val (vs,evs) = partition (fn v => HOLset.member(fvf con,v)) gvs
+        val (vs,evs) = List.partition (fn v => HOLset.member(fvf con,v)) gvs
         val th2 = uncurry disch (itlist efn evs (ant, th1)) 
         val (gl,vs) = strip_forall w
         val env = match_form (fvfl (hyp th)) (fVarsl (hyp th)) con gl mempty
@@ -267,10 +267,11 @@ fun spec_all_tac (G,fl,f) =
 fun then_tac ((tac1:tactic),(tac2:tactic)) (G,fl,f) = 
     let val (gl,func) = tac1 (G,fl,f)
         val branches = List.map tac2 gl
-        val gl1 = flatten (fst $ unzip branches)
+        val gl1 = flatten (fst $ ListPair.unzip branches)
         fun func1 l = 
             (if List.length l = List.length gl1 then 
-                 func (mapshape (List.map List.length (fst $ unzip branches))
+                 func (mapshape (List.map List.length
+                                          (fst $ ListPair.unzip branches))
                            (List.map (fn (a,b) => b) branches) l)
              else raise ERR ("then_tac.length list not consistent,start with respectively: ",[],[],[concl (hd l),#3 (hd gl1)]))
     in (gl1,func1) 
@@ -535,7 +536,7 @@ fun pop_assum_list (asltac:thm list -> tactic):tactic =
 
 fun excl_ths P thlt: thm list -> tactic = 
     fn thl => 
-       let val (_,ths) = partition P thl
+       let val (_,ths) = List.partition P thl
        in thlt ths
        end
 
@@ -674,7 +675,7 @@ fun resolve th th' = mp (mp (F_imp (concl th)) th') th
                      handle e => raise (wrap_err "resolve." e)
 
 fun target_rule tm =
-      if is_neg tm then (dest_neg tm, Lib.C resolve) else (mk_neg tm, resolve)
+      if is_neg tm then (dest_neg tm, C resolve) else (mk_neg tm, resolve)
 
 fun opposite_tac th:tactic = fn (ct,asl, w) =>
     let
@@ -693,7 +694,7 @@ fun opposite_tac th:tactic = fn (ct,asl, w) =>
  * --------------------------------------------------------------------------*)
 
 fun discard_tac th (ct,asl, w) =
-   if Lib.exists ((curry eq_form) (concl th)) (TRUE :: asl) andalso HOLset.isSubset(cont th,ct)
+   if List.exists ((curry eq_form) (concl th)) (TRUE :: asl) andalso HOLset.isSubset(cont th,ct)
       then all_tac (ct,asl, w)
    else raise simple_fail "discard_tac"
 
@@ -803,7 +804,7 @@ fun pick_assum f ttac = fn (ct,asl, w) => ttac (assume f) (ct,asl, w)
 fun last_assum ttac = fn (ct,asl, w) => find ttac (ct,asl,w) (rev asl)
 
 fun undisch_then f (ttac:thm_tactic): tactic = fn (ct,asl, w) =>
-      let val (_, A) = Lib.pluck ((curry eq_form) f) asl in ttac (assume f) (ct,A, w) end
+      let val (_, A) = pluck ((curry eq_form) f) asl in ttac (assume f) (ct,A, w) end
 
 local
     fun f ttac th = undisch_then (concl th) ttac
@@ -991,11 +992,11 @@ fun f r (tac:thm_tactic) thms asms:tactic =
 fun gen_full_simp_tac r tac thms =
     pop_assum_list (f r tac thms) then_tac arw_tac thms
  
-val full_tac = gen_full_simp_tac Lib.I
+val full_tac = gen_full_simp_tac I
 val rev_full_tac = gen_full_simp_tac List.rev
 
 fun full_simp_tac thms = 
-    pop_assum_list (f Lib.I strip_assume_tac thms) then_tac arw_tac thms
+    pop_assum_list (f I strip_assume_tac thms) then_tac arw_tac thms
 
 fun rev_full_simp_tac thms = 
     pop_assum_list (f List.rev strip_assume_tac thms) then_tac arw_tac thms

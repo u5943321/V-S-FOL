@@ -35,7 +35,7 @@ val read_ast_f:
 val read_ast_t:
    string ->
        term * (string list * string list * string list * string list * int)
-val readfq: 'a frag list -> form
+val readfq: 'a HOLPP.frag list -> form
 val try_until_ok: int -> string set -> string
 val anno_cont_ast: (string * sort) set -> ast -> ast
 val parse_term_with_cont: (string * sort) set -> string -> term

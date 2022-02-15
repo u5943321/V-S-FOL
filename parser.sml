@@ -1007,7 +1007,7 @@ fun rapf str =
 val rastt = fst o read_ast_t
 
 
-fun readfq [QUOTE s] = rapf s
+fun readfq [HOLPP.QUOTE s] = rapf s
 
 
 fun ast_of_term t = 

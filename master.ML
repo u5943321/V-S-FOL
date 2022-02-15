@@ -2,12 +2,30 @@ use "Binarymap.sig";
 use "Binarymap.sml";
 use "Binaryset.sig";
 use "Binaryset.sml";
-structure HOLset = Binaryset;
-type 'a set = 'a HOLset.set;
-infixr 1 $;
+use "Redblackset.sig";
+use "Redblackset.sml";
+use "HOLPP.sig";
+use "HOLPP.sml";
+use "UTF8.sig";
+use "UTF8.sml";
+use "smpp.sig";
+use "smpp.sml";
+use "HOLset.sig";
+use "HOLset.sml";
 
+infixr 1 $ ?;
+infix |> >> |>> ||->;
+infix 3 ##;
 use "Portable.sml";
 open Portable;
+
+use "AList.sig";
+use "AList.sml";
+use "Table.sml";
+use "Graph.sml";
+use "SymGraph.sml";
+type 'a set = 'a HOLset.set;
+
 
 use "term.sig";
 use "term.sml";

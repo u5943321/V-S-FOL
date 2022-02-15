@@ -121,7 +121,7 @@ fun ppterm ss g t =
         if length args1 = 0 then add_string f1 else
         add_string f1 >> paren (pr_list (ppterm ss g) (add_string "," >> add_break (1,0)) args1)
         end)
-      | vB i => add_string "B" >> paren (add_string (int_to_string i))
+      | vB i => add_string "B" >> paren (add_string (Int.toString i))
     end
 and ppsort g s =
     case dest_sort s of 

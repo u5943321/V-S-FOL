@@ -1,5 +1,0 @@
-$(HOLDIR)/src/portableML/HOLPP
-$(HOLDIR)/src/portableML/UTF8
-$(HOLDIR)/src/portableML/smpp
-$(HOLDIR)/src/portableML/smpp
-$(HOLDIR)/src/portableML/smpp.sml
