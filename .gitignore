@@ -2,4 +2,5 @@
 *.sml#
 .#*
 mllex/mllex
-QuoteFilter.sml
+buildcore/QuoteFilter.sml
+vscore
