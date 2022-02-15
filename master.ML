@@ -1,3 +1,14 @@
+use "Binarymap.sig";
+use "Binarymap.sml";
+use "Binaryset.sig";
+use "Binaryset.sml";
+structure HOLset = Binaryset;
+type 'a set = 'a HOLset.set;
+infixr 1 $;
+
+use "Portable.sml";
+open Portable;
+
 use "term.sig";
 use "term.sml";
 open term;
