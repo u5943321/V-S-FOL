@@ -4,3 +4,5 @@
 mllex/mllex
 buildcore/QuoteFilter.sml
 vscore
+*.uo
+*.ui
