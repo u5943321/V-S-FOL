@@ -967,7 +967,7 @@ once_rw[idL] >> once_rw[idR] >> rw[])
 
 
 
-
+ 
 val triple_IND' = prove_store("triple_IND'",
 e0
 (rpt strip_tac >>

@@ -37,14 +37,79 @@ Key "{" Key"=+"
 
 
 *)
+
+val letter_or_digits0 = HOLset.empty Int.compare
+
+val letter_or_digits = ref letter_or_digits0
+
+fun add_range (a,b) s = 
+    if b < a then raise TER "add_range.bad input" else
+        if a = b then HOLset.add(s,b)
+        else let val s0 = HOLset.add(s,a)
+             in add_range (a + 1,b) s0
+             end
+
+fun add_parse c = letter_or_digits := HOLset.add(!letter_or_digits,c)
+
+fun add_parse_range (a,b) =letter_or_digits := add_range (a,b) (!letter_or_digits)
+
+
+(*
+fun letter_or_digit0 c = 
+    is_char(ord #"A",c,ord #"Z") orelse is_char(ord #"a",c,ord #"z") orelse is_char(ord #"0",c,ord #"9") orelse
+    is_char(913,c,937) orelse is_char(945,c,969) orelse is_char(8320,c,8329) orelse 
+    c = 0x00B9 orelse c = 0x00B2 orelse c = 0x00B3 orelse is_char(0x2074,c,0x2079) orelse 
+    c = ord #"'" orelse c = ord #"_";
+
+val letter_or_digit = ref letter_or_digit0;
+
+
+fun add_parsable c = 
+    let val _ = letter_or_digit := (fn c0 => !letter_or_digit c0 orelse c0 = c)
+    in () end
+
+*)
+
+(*
 fun is_letter_or_digit c =
     is_char(ord #"A",c,ord #"Z") orelse is_char(ord #"a",c,ord #"z") orelse is_char(ord #"0",c,ord #"9") orelse
     is_char(913,c,937) orelse is_char(945,c,969) orelse is_char(8320,c,8329) orelse 
     c = 0x00B9 orelse c = 0x00B2 orelse c = 0x00B3 orelse is_char(0x2074,c,0x2079) orelse 
     c = ord #"'" orelse c = ord #"_";
 
+*)
 
-fun token_of a = if mem a ["o","!","?","?!","==>","<=>",":","->","(*","*)","=="] then (Key a) else (Id a); 
+fun int_of s = 
+    case UTF8.getChar s of 
+        NONE => raise TER "int_of.empty string"
+      | SOME ((_,n),_) => n
+
+val _ = add_parse_range (ord #"A",ord #"Z")
+val _ = add_parse_range (ord #"a",ord #"z")
+val _ = add_parse_range(ord #"0",ord #"9")
+val _ = add_parse_range(913,937) 
+val _ = add_parse_range(945,969) 
+val _ = add_parse_range(8320,8329) 
+val _ = add_parse 0x00B9 
+val _ = add_parse 0x00B2
+val _ = add_parse 0x00B3 
+val _ = add_parse_range(0x2074,0x2079)
+val _ = add_parse (ord #"'")
+val _ = add_parse (ord #"_");
+
+val _ = add_parse (int_of "∀");
+val _ = add_parse (int_of "∃");
+val _ = add_parse (int_of "⇔");
+val _ = add_parse (int_of "∨");
+val _ = add_parse (int_of "∧");
+val _ = add_parse (int_of "⇒");
+
+
+fun is_letter_or_digit c = HOLset.member(!letter_or_digits,c)
+
+
+
+fun token_of a = if mem a ["o","!","?","?!","==>","<=>",":","->","(*","*)","==","=>"] then (Key a) else (Id a); 
 
 fun getN s n = 
     if n <= 0 then ([], s)
@@ -176,7 +241,16 @@ fun scan_symbol s =
                 if l2 = ["-",">"] then (Key "->",s2) else
                 if l2 = ["~",">"] then (Key "~>",s2) else
                 if l2 = ["=","="] then (Key "==",s2) else
+                if l2 = ["=",">"] then (Key "=>",s2) else
                 if l2 = ["?","!"] then (Key "?!",s2) else
+                if l2 = ["∃","!"] then (Key "?!",s2) else
+                if l1 = ["∧"] then (Key "&",s1) else
+                if l1 = ["∨"] then (Key "|",s1) else
+                if l1 = ["⇒"] then (Key "==>",s1) else
+                if l1 = ["⇔"] then (Key "<=>",s1) else
+                if l1 = ["¬"] then (Key "~",s1) else
+                if l1 = ["∀"] then (Key "!",s1) else
+                if l1 = ["∃"] then (Key "?",s1) else
                 if mem (List.hd l1) syml then (Key $ List.hd l1,s1) else
                 raise TER "no symbol detected"(*(Id (List.hd l1),s)*)
             end 

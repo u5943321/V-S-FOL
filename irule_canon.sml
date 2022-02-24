@@ -13,7 +13,7 @@ fun aimp_rule th =
 fun norm th =
     if is_forall (concl th) then norm (spec_all th)
     else
-      case Lib.total dest_imp (concl th) of
+      case total dest_imp (concl th) of
           NONE => th
         | SOME (l,r) =>
           if is_conj l then norm (aimp_rule th)

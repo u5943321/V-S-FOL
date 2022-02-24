@@ -8,9 +8,14 @@ fun K x y = x
 
 fun f $ x = f x
 fun x |> f = f x
-fun total f x = SOME (f x) handle Fail _ => NONE
-fun can f x = (ignore (f x); true) handle Fail _ => false
+fun total f x = SOME (f x) handle Interrupt => raise Interrupt | _ => NONE
+fun can f x = (ignore (f x); true) handle Interrupt => raise Interrupt | _ => false
 fun (b ? f) x = if b then f x else x
+fun funpow n f arg = 
+    case n of 0 => arg
+            | _ => funpow (n - 1) f (f arg) 
+
+
 
 (* pairs *)
 fun fst (a,b) = a

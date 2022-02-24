@@ -694,6 +694,13 @@ fun simple_genl vsl th =
         [] => th
       | h :: t => allI h (simple_genl t th) 
 
+
+fun simple_genl vsl th = 
+    case  vsl of 
+        [] => th
+      | h :: t => allI h (simple_genl t th) 
+
+
 fun gen_all th = 
     let 
         val vs = HOLset.difference

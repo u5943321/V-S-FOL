@@ -64,9 +64,7 @@ e0
       (!cd. IN(cd,pairs) <=> Sim(ab,cd))” >>
  rw[ALL_property,GSYM And_def,CONJ_def,o_assoc,Pa_distr,
     Eq_property_TRUE,GSYM Iff_def,IFF_def,
-    EX_property] >> 
- rw[GSYM p21_def,GSYM p22_def,p12_of_Pa] >>
- rw[p31_of_Pa3,p32_of_Pa3,p33_of_Pa3,Pa3_def,
+    EX_property,GSYM p21_def,GSYM p22_def,p12_of_Pa,p31_of_Pa3,p32_of_Pa3,p33_of_Pa3,Pa3_def,
     IN_def,Sim_def,True1TRUE])
 (form_goal
  “?P: Exp(N * N,1+1) -> 1+1.
@@ -84,12 +82,8 @@ e0
  “!ab:1->N * N cd. IN(ab,pairs) & IN(cd,pairs) ==> 
           Add(Fst(ab),Snd(cd)) = Add(Snd(ab),Fst(cd))” >>
  rw[ALL_property,GSYM Imp_def,IMP_def,o_assoc,Pa_distr,
-    Eq_property_TRUE,GSYM And_def,CONJ_def] >> 
- rw[GSYM Fst_def,GSYM Snd_def] >>
- rw[GSYM p31_def,GSYM p32_def,GSYM p33_def] >>
- rw[o_assoc,Pa_distr] >> rw[p12_of_Pa] >>
- rw[GSYM Add_def,Pa_distr,p12_of_Pa,o_assoc] >>
- rw[GSYM IN_def1])
+    Eq_property_TRUE,GSYM And_def,CONJ_def,GSYM Fst_def,GSYM Snd_def,
+    GSYM p31_def,GSYM p32_def,GSYM p33_def,p12_of_Pa,GSYM Add_def,GSYM IN_def1])
 (form_goal
  “?P: Exp(N * N,1+1) -> 1+1.
   !pairs:1->Exp(N * N,1+1). P o pairs = TRUE <=>
@@ -235,24 +229,16 @@ e0
           dest_var $ rastt "ps1:1->Exp(N * N,1+1)",
           dest_var $ rastt "ps2:1->Exp(N * N,1+1)"] 
  “(?r1:1->N * N r2. IN(r1,ps1) & IN(r2,ps2) & Addj(r1,r2) = ab)” >>
- rw[EX_property] >> 
- rw[GSYM And_def,Pa_distr,o_assoc,CONJ_def] (*slow*) >>
- once_rw[Eq_property_TRUE] >>
- once_rw[Pa_distr] >> once_rw[Pa5_def] >> 
- once_rw[p52_of_Pa5] >> once_rw[p53_of_Pa5] >> 
- once_rw[p54_of_Pa5] >> once_rw[p51_of_Pa5] >> 
- once_rw[p55_of_Pa5] >> once_rw[GSYM Addj_def] >>
- rw[o_assoc] >> once_rw[Pa_distr] >> 
- once_rw[p52_of_Pa5] >> once_rw[p51_of_Pa5] >>
- rw[IN_def,True1TRUE])
+ rw[EX_property,GSYM And_def,Pa_distr,o_assoc,CONJ_def,Eq_property_TRUE,
+    Pa5_def,p52_of_Pa5,p53_of_Pa5,p54_of_Pa5,p51_of_Pa5,p55_of_Pa5,GSYM Addj_def,IN_def,True1TRUE])
 (form_goal
  “?P: (N * N) * Exp(N * N,1+1) * Exp(N * N,1+1) -> 1+1.
   !ab ps1 ps2. P o Pa(ab,Pa(ps1,ps2)) = TRUE <=> 
   (?r1 r2. IN(r1,ps1) & IN(r2,ps2) & Addj(r1,r2) = ab)”));
 
-
+(*
  rw[EX_property,GSYM And_def,Pa_distr,o_assoc,CONJ_def,Eq_property_TRUE,Pa_distr,Pa5_def,p52_of_Pa5,p53_of_Pa5,p54_of_Pa5,p51_of_Pa5,p55_of_Pa5,GSYM Addj_def,o_assoc,Pa_distr,p52_of_Pa5,p51_of_Pa5,IN_def,True1TRUE]
-
+*)
 
 val ADDs0_ex = prove_store("ADDs0_ex",
 e0

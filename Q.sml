@@ -1,6 +1,6 @@
 structure Q :> Q = 
 struct
-open drule tactic
+open drule tactic HOLPP;
 
 fun q2str [QUOTE s] = s
 
@@ -54,6 +54,13 @@ fun qpick_x_assum fq (thtac:thm_tactic): tactic =
 
 fun qgen qt th = genl [dest_var o qparse_term_with_cont (cont th) $ qt] th
 
+
+fun simple_genl vsl th = 
+    case  vsl of 
+        [] => th
+      | h :: t => allI h (simple_genl t th) 
+
+fun qgenl qtl th = simple_genl (List.map (dest_var o qparse_term_with_cont (cont th)) qtl) th
 
 val qsspecl_then = qterml_tcl sspecl_then
 

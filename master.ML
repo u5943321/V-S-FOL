@@ -1,3 +1,5 @@
+
+exception Interrupt = SML90.Interrupt;
 use "Binarymap.sig";
 use "Binarymap.sml";
 use "Binaryset.sig";
@@ -108,7 +110,8 @@ use "Q.sig";
 use "Q.sml";
 open Q;
 
-
+use "History.sig";
+use "History.sml";
 use "proofmanager.sml";
 
 

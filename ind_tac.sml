@@ -358,3 +358,6 @@ new_abbr ("2",[]) ("+",[ONE,ONE])
 
 new_abbr ("Exp",[mk_ob "A",rastt "2"])
 *)
+
+fun sep_ex_tac (ct,asl,w) = 
+    let val f = 

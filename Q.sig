@@ -1,5 +1,6 @@
 signature Q = 
 sig
+datatype frag = datatype HOLPP.frag
 type term = term.term 
 type form = form.form
 val q2str: 'a frag list -> string
@@ -35,5 +36,6 @@ val qterml_rule:
 
 val qsspecl_then: term frag list list -> thm_tactic -> thm -> tactic
 val ex2fsym: string -> string list -> thm -> thm
+val qgenl: term frag list list -> thm -> thm
 
 end
