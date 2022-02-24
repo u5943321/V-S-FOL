@@ -50,6 +50,8 @@ val _ = add_parse 0x1D7D8
 val _ = add_parse 120793
 
 
+
+
 val isEq_def = define_pred
 “!A B f:A->B g E e:E->A. 
       isEq(f,g,e) <=> 
@@ -175,6 +177,27 @@ val isPb_ex = store_ax("isPb_ex",“!X H f:X->H Y g:Y->H. ?P p:P->X q. isPb(f,g,
 
 val PCC1 = store_ax("PCC1",
 “?p:0->1 q:0->1. isPb(0f,1f,p,q)”);
+
+
+val zero_ex = prove_store("zero_ex",
+e0
+cheat
+(form_goal
+ “∃z:2->2. z = 0f o To1(2)”));  
+
+val zero_def = zero_ex |> ex2fsym0 "𝟘" [] 
+
+
+val one_ex = prove_store("one_ex",
+e0
+cheat
+(form_goal
+ “∃l:2->2. l = 1f o To1(2)”));  
+
+val one_def = one_ex |> ex2fsym0 "𝟙" [] 
+
+val CC2_1 = store_ax ("CC2_1",“∀f:2->2. f = 𝟘 | f = 𝟙 | f = 𝟚”);
+
 
 val CC2_2 = store_ax("CC2_2",
 “!A B f:A->B g:A->B. ~(f = g) ==> ?a:2->A. ~(f o a = g o a)”);
@@ -370,13 +393,82 @@ val isPb_def = store_ax("isPb_def",
     f o u = g o v ==> 
     ?!a : A -> P. p o a = u & q o a = v”);
 
+val E_ex = prove_store("E_ex",
+e0
+(rw[isPo_ex])
+(form_goal
+ “∃E e1:2->E e2:2-> E. isPo(coPa(0f,1f),coPa(0f,1f),e1,e2)”));
+
+val E_def = E_ex |> ex2fsym0 "E" [] |> ex2fsym0 "ε1" []
+                 |> ex2fsym0 "ε2" [] |> store_as "E_def";
+
+val Epi_iff_Po_id = prove_store("Epi_iff_Po_id",
+e0
+cheat
+(form_goal
+ “∀A B f:A->B. Epi(f) ⇔ isPo(f,f,id(B),id(B))”));
+
+val iso_Po_Po = prove_store("iso_Po_Po",
+e0
+(cheat)
+(form_goal
+ “∀X A f:X->A B g:X->B P1 p1:A->P1 q1:B->P1. isPo(f,g,p1,q1) ⇒
+  ∀P2 p2: A-> P2 q2: B -> P2 i:P1->P2 j: P2 -> P1.
+  j o i = id(P1) & i o j = id(P2) ⇒ isPo(f,g,p2,q2)”));
+
+val Po_equal_id = prove_store("Po_equal_id",
+e0
+(rpt strip_tac >>
+ drule $ iffLR isPo_expand >>
+ fs[] >>
+ first_x_assum (qsspecl_then [‘id(B)’,‘id(B)’] assume_tac) >>
+ fs[] >> drule iso_Po_Po >> first_x_assum irule >>
+ qexistsl_tac [‘a’,‘p’] >>
+ arw[] >>
+ drule $ iffLR isPo_expand >> fs[] >>
+ first_x_assum (qsspecl_then [‘p’,‘p’] assume_tac) >>
+ fs[] >> 
+ first_assum (qspecl_then [‘p o a’] assume_tac) >>
+ first_x_assum (qspecl_then [‘id(P)’] assume_tac) >>
+ rfs[idL,o_assoc,idR])
+(form_goal “∀A B e:A->B P p:B->P. isPo(e,e,p,p) ⇒
+ isPo(e,e,id(B),id(B))”));
+
+val e1_ne_e2 = prove_store("e1_ne_e2",
+e0
+(ccontra_tac >>
+ qsuff_tac ‘isPo(coPa(0f,1f),coPa(0f,1f),𝟚,𝟚)’
+ >-- rw[GSYM Epi_iff_Po_id,two_def,CC3] >>
+ assume_tac E_def >> rfs[two_def] >>
+ drule Po_equal_id >> first_x_assum accept_tac
+ )
+(form_goal “~(ε1 = ε2)”));
+
+val e1_e2_same_dom = prove_store("e1_e2_same_dom",
+e0
+(cheat)
+(form_goal “dom(ε1) = dom(ε2)”));
+
+
+val e1_e2_same_cod = prove_store("e1_e2_same_cod",
+e0
+(cheat)
+(form_goal “cod(ε1) = cod(ε2)”));
 
 
 val Thm3_1 = prove_store("Thm3_1",
 e0
 (rpt strip_tac >> fs[isgen_def] >>
- cheat
- )
+ assume_tac e1_ne_e2 >> first_x_assum drule >>
+ pop_assum strip_assume_tac >> drule CC2_2 >>
+ pop_assum (x_choose_then "f" assume_tac) >>
+ fs[o_assoc] >>
+ qspecl_then [‘g o f’] strip_assume_tac CC2_1 (* 3 *)
+ >-- (fs[zero_def] >> 
+     fs[GSYM dom_def,GSYM o_assoc,e1_e2_same_dom])
+ >-- (fs[one_def] >> 
+     fs[GSYM cod_def,GSYM o_assoc,e1_e2_same_cod]) >>
+ qexistsl_tac [‘f’,‘g’] >> arw[two_def])
 (form_goal
  “!G. isgen(G) ==> ?s:2->G r:G->2. r o s = id(2)”));
 
@@ -464,23 +556,6 @@ val oa_def = oa_ex |> spec_all |> undisch
 (* THEOREM 4. The composite in 2 of the nonidentity arrow 12 with either of the
  identity arrows 0 ? !2 and 0 a !2 is 1*)
 
-
-val zero_ex = prove_store("zero_ex",
-e0
-cheat
-(form_goal
- “∃z:2->2. z = 0f o To1(2)”));  
-
-val zero_def = zero_ex |> ex2fsym0 "𝟘" [] 
-
-
-val one_ex = prove_store("one_ex",
-e0
-cheat
-(form_goal
- “∃l:2->2. l = 1f o To1(2)”));  
-
-val one_def = one_ex |> ex2fsym0 "𝟙" [] 
 
 val Thm4 = prove_store("Thm4",
 e0
