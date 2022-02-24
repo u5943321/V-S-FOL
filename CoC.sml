@@ -196,7 +196,9 @@ cheat
 
 val one_def = one_ex |> ex2fsym0 "𝟙" [] 
 
-val CC2_1 = store_ax ("CC2_1",“∀f:2->2. f = 𝟘 | f = 𝟙 | f = 𝟚”);
+val CC2_0 = store_ax("CC2_0",“~(𝟘 = 𝟙) & ~(𝟘 = 𝟚) & ~(𝟙 = 𝟚)”)
+
+val CC2_1 = store_ax ("CC2_1",“ ∀f:2->2. f = 𝟘 | f = 𝟙 | f = 𝟚”);
 
 
 val CC2_2 = store_ax("CC2_2",
@@ -474,15 +476,112 @@ e0
 
 (*all distinct*)
 
+
+val areIso_def = store_ax("areIso_def",
+“!A B. areIso(A,B) <=> ?f:A->B g:B->A. f o g = id(B) & g o f = id(A)”)
+
+val distinct_three_lemma = prove_store("distinct_three_lemma",
+e0
+(rpt strip_tac >>
+ first_assum (qspecl_then [‘g1’] strip_assume_tac) >>
+ first_assum (qspecl_then [‘g2’] strip_assume_tac) >>
+ first_assum (qspecl_then [‘g3’] strip_assume_tac) >> fs[] >>
+ first_assum (qspecl_then [‘g’] strip_assume_tac) >> fs[])
+(form_goal
+ “∀A B f1 f2 f3:A->B. 
+  ~(f1 = f2) & ~(f1 = f3) & ~(f2 = f3) &
+  (∀f:A->B. f = f1 | f = f2 | f = f3) ⇒ 
+  ∀g1 g2 g3:A->B. 
+  ~(g1 = g2) & ~(g1 = g3) & ~(g2 = g3) ⇒ 
+  ∀g:A->B. g = g1 | g = g2 | g = g3”));
+
+
+fun eq_sym a = 
+    if mem a (!EqSorts) then 
+        let val ns0 = srt2ns a
+            val v1 = mk_var ns0
+            val v2 = pvariantt (HOLset.add(essps,ns0)) v1
+            val v1v2 = mk_eq v1 v2
+            val v2v1 = mk_eq v2 v1
+            val l2r = assume v1v2 |> sym|> disch_all
+            val r2l = assume v2v1 |> sym|> disch_all
+        in dimpI l2r r2l
+        end
+    else raise ERR ("eq_sym.input sort: " ^ a ^ " does not have equality",
+                    [],[],[])
+
+
+val flip_tac = 
+fconv_tac (rewr_fconv (eq_sym "fun"));
+
+
+val dflip_tac = 
+fconv_tac 
+ (basic_once_fconv no_conv (rewr_fconv (eq_sym "fun")))
+
 val Thm3_2 = prove_store("Thm3_2",
 e0
-(cheat)
+(rpt strip_tac >> drule Thm3_1 >> 
+ rw[areIso_def] >> 
+ pop_assum (x_choosel_then ["f","g"] strip_assume_tac) >>
+ qexistsl_tac [‘g’,‘f’] >> arw[] >>
+ qby_tac
+ ‘~(f o 0f o To1(2) o g = f o 1f o To1(2) o g)’
+ >-- (ccontra_tac >>
+     qby_tac 
+     ‘g o (f o 0f o To1(2) o g) o f = 
+      g o (f o 1f o To1(2) o g) o f’ 
+     >-- arw[] >>
+     rfs[GSYM o_assoc,idL] >> rfs[o_assoc,idR] >>
+     fs[GSYM one_def,GSYM zero_def,CC2_0]) >>
+ qby_tac
+ ‘~(f o 0f o To1(2) o g = id(G))’
+ >-- 
+ (ccontra_tac >>
+  qby_tac 
+  ‘g o (f o 0f o To1(2) o g) o f = 
+   g o (id(G)) o f’ 
+  >-- arw[] >>
+  rfs[GSYM o_assoc,idL] >> rfs[o_assoc,idR] >>
+  rfs[GSYM two_def,GSYM zero_def,CC2_0,idL]) >>
+ qby_tac
+ ‘~(f o 1f o To1(2) o g = id(G))’
+ >-- 
+ (ccontra_tac >>
+  qby_tac 
+  ‘g o (f o 1f o To1(2) o g) o f = 
+   g o (id(G)) o f’ 
+  >-- arw[] >>
+  rfs[GSYM o_assoc,idL] >> rfs[o_assoc,idR] >>
+  rfs[GSYM two_def,GSYM one_def,CC2_0,idL]) >> 
+ qsuff_tac ‘~(f o g = f o 1f o To1(2) o g) & 
+            ~(f o g = f o 0f o To1(2) o g)’
+ >-- (qby_tac ‘∀a: G->G. a = f o 1f o To1(2) o g | 
+ a = f o 0f o To1(2) o g | a = id(G)’ 
+     >-- (irule distinct_three_lemma >> arw[] >>
+          dflip_tac >> arw[] >> dflip_tac >>
+          qexistsl_tac [‘g1’,‘g2’,‘g3’] >> arw[]) >>
+     first_x_assum (qspecl_then [‘f o g’] strip_assume_tac)>>
+     rfs[]) >>
+ strip_tac >> ccontra_tac (* 2 *)
+ >-- (qby_tac
+     ‘g o (f o g) o f = g o (f o 1f o To1(2) o g) o f’
+     >-- arw[] >>
+     rfs[GSYM o_assoc,idL] >> 
+     rfs[o_assoc,idR] >> 
+     fs[GSYM CC2_0,GSYM two_def,GSYM one_def]) >>
+ qby_tac
+ ‘g o (f o g) o f = g o (f o 0f o To1(2) o g) o f’
+ >-- arw[] >>
+ rfs[GSYM o_assoc,idL] >> 
+ rfs[o_assoc,idR] >> 
+ fs[GSYM CC2_0,GSYM two_def,GSYM zero_def])
 (form_goal
- “!G. isGen(G) & 
-  ?g1 g2 g3:G->G. ~(g1 = g2) & 
-                  ~(g1 = g3) &
-                  ~(g2 = g3) & 
-  !g:G->G. g = g1 | g = g2 | g = g3”));
+ “!G. isgen(G) ⇒ 
+  ∀g1 g2 g3:G->G. 
+  ~(g1 = g2) & ~(g1 = g3) & ~(g2 = g3) & 
+  (!e:G->G. e = g1 | e = g2 | e = g3) ⇒ 
+  areIso(G,2)”));
 
 
 val _ = new_pred "isPo"
