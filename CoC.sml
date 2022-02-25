@@ -1158,6 +1158,32 @@ e0
   csL(Pt(s2 @ s1)) = csL(Pt(s2)) @ csL(Pt(s1))  ∧
   csR(Pt(s2 @ s1)) = csR(Pt(s2)) @ csR(Pt(s1))”));
 
+val oa_dom_cod = prove_store("oa_dom_cod",
+e0
+(strip_tac >> strip_tac >> strip_tac >> strip_tac >>
+ fs[cpsb_def] >> drule oa_def >> 
+ arw[] >> rw[dom_def,cod_def,o_assoc,CC4_1] >>
+ assume_tac CC4_2 >> drule Poa_def >>
+ fs[dom_def,cod_def] >>
+ last_x_assum (assume_tac o GSYM) >>
+ first_x_assum drule >> arw[GSYM o_assoc])
+(form_goal
+ “∀A f:2->A g. cpsb(g,f) ⇒ dom(g @ f) = dom(f) ∧ cod(g @ f) = cod(g)”));
+
+
+val Thm6_vertical_full = prove_store("Thm6_vertical_full",
+e0
+(rpt strip_tac >> rw[csL_Pt,csR_Pt] >> drule fun_pres_oa >> 
+ arw[] >>
+ rw[csT_dom,csB_cod] >> drule oa_dom_cod >> arw[])
+(form_goal
+ “∀A s1:2-> Exp(2,A) s2:2-> Exp(2,A). cpsb(s2,s1) ⇒ 
+  csL(Pt(s2 @ s1)) = csL(Pt(s2)) @ csL(Pt(s1)) ∧
+  csR(Pt(s2 @ s1)) = csR(Pt(s2)) @ csR(Pt(s1)) ∧
+  csT(Pt(s2 @ s1)) = csT(Pt(s1)) ∧
+  csB(Pt(s2 @ s1)) = csB(Pt(s2))”));
+
+
 val csL_csT = prove_store("csL_csT",
 e0
 (rw[csL_def,csT_def,o_assoc,GSYM Swap_def,p12_of_Pa,
@@ -1230,8 +1256,8 @@ e0
   (∀f:A * 1->B g. f o Pa(id(A),To1(A)) = g o Pa(id(A),To1(A)) ⇔ 
   f = g)”));
  
+(*
 generate lemma which says composing with them eq iff eq
-
 *)
 
 val is_Tp = prove_store("is_Tp",
@@ -1304,6 +1330,130 @@ strip_tac >> strip_tac >> strip_tac >>
   csR(Pt(Tp(pT(s2)))) @ csR(Pt(Tp(pT(s1))))”));
 
 val Thm6 = Thm6_0 |> rewr_rule[Pt_Tp] |> store_as "Thm6";
+
+
+
+val Thm6_0_full = prove_store("Thm6_0",
+e0
+(strip_tac >> 
+strip_tac >> strip_tac >> strip_tac >> 
+ irule Thm6_vertical_full >>
+ rw[cpsb_def] >> fs[GSYM csL_csT,GSYM csR_csB]  >>
+ fs[GSYM pT_def] >> flip_tac >>
+ qby_tac ‘Pt(Tp(pT(s1))) = pT(s1)’ >-- rw[Pt_Tp] >>
+ qby_tac
+ ‘csB(Pt(Tp(pT(s1)))) = csT(Pt(Tp(pT(s2))))’
+ >-- arw[Pt_Tp] >>
+ pop_assum mp_tac >> pop_assum_list (K all_tac) >>
+ strip_tac >> fs[csB_cod,csT_dom] >>
+ fs[o_Cr1_eq,Pt_eq_eq])
+(form_goal
+ “∀A s1:2 -> Exp(2,A) s2. 
+  csR(Pt(s1)) = csL(Pt(s2)) ⇒ 
+  csL(Pt(Tp(pT(s2)) @ Tp(pT(s1)))) = 
+  csL(Pt(Tp(pT(s2)))) @ csL(Pt(Tp(pT(s1)))) &
+  csR(Pt(Tp(pT(s2)) @ Tp(pT(s1)))) = 
+  csR(Pt(Tp(pT(s2)))) @ csR(Pt(Tp(pT(s1))))  & 
+  csT(Pt(Tp(pT(s2)) @ Tp(pT(s1)))) = 
+  csT(Pt(Tp(pT(s1)))) & 
+  csB(Pt(Tp(pT(s2)) @ Tp(pT(s1)))) = 
+  csB(Pt(Tp(pT(s2))))”));
+
+
+val Thm6_full = Thm6_0_full |> rewr_rule[Pt_Tp] 
+                            |> store_as "Thm6_full";
+
+val Pt_def_alt = prove_store("Pt_def_alt",
+e0
+(rw[pT_def,Swap_Swap_id,idR,o_assoc])
+(form_goal “∀A B X f:X -> Exp(A,B). 
+ Pt(f) = pT(f) o Swap(A,X)”));
+
+val csL_csT_Pt = prove_store("csL_csT_Pt",
+e0
+(rw[Pt_def_alt,csL_csT])
+(form_goal
+ “∀A s:2->Exp(2,A).csL(pT(s)) = csT(Pt(s))”));
+
+val csT_csL_pT = prove_store("csT_csL_pT",
+e0
+(rw[GSYM csL_csT,pT_def])
+(form_goal
+ “∀A s:2->Exp(2,A).csT(pT(s)) = csL(Pt(s))”));
+
+val csR_csB_Pt = prove_store("csR_csB_Pt",
+e0
+(rw[Pt_def_alt,csR_csB])
+(form_goal
+ “∀A s:2->Exp(2,A).csR(pT(s)) = csB(Pt(s))”));
+
+val csB_csR_pT = prove_store("csB_csR_pT",
+e0
+(rw[GSYM csR_csB,pT_def])
+(form_goal
+ “∀A s:2->Exp(2,A).csB(pT(s)) = csR(Pt(s))”));
+
+val Thm6_ex_0 = prove_store("Thm6_ex_0",
+e0
+(rpt strip_tac >> drule Thm6_full >>
+ qexists_tac ‘Pt(Tp(pT(s2)) @ Tp(pT(s1)))’ >>
+ arw[csL_csT_Pt,csR_csB_Pt,csT_csL_pT,csB_csR_pT])
+(form_goal
+ “∀A s1:2->Exp(2,A) s2. 
+  csR(Pt(s1)) = csL(Pt(s2)) ⇒ 
+  ∃s. csL(s) = csT(Pt(s2)) @ csT(Pt(s1)) & 
+      csR(s) = csB(Pt(s2)) @ csB(Pt(s1)) &
+      csT(s) = csL(Pt(s1)) & 
+      csB(s) = csR(Pt(s2))”));
+
+val cs_Swap = prove_store("cs_Swap",
+e0
+(rw[csT_def,csB_def,csL_def,csR_def,o_assoc,
+    GSYM Swap_def,p12_of_Pa,Pa_distr])
+(form_goal
+ “∀A s: 2 * 2 ->A.
+  csT(s o Swap(2, 2)) = csL(s) ∧
+  csB(s o Swap(2, 2)) = csR(s) ∧
+  csL(s o Swap(2, 2)) = csT(s) ∧
+  csR(s o Swap(2, 2)) = csB(s)”));
+
+val Thm6_ex = prove_store("Thm6_ex",
+e0
+(rpt strip_tac >> drule Thm6_ex_0 >>
+ pop_assum strip_assume_tac >>
+ qexists_tac ‘s o Swap(2,2)’ >>
+ arw[cs_Swap])
+(form_goal
+ “∀A s1:2->Exp(2,A) s2. 
+  csR(Pt(s1)) = csL(Pt(s2)) ⇒ 
+  ∃s. csT(s) = csT(Pt(s2)) @ csT(Pt(s1)) & 
+      csB(s) = csB(Pt(s2)) @ csB(Pt(s1)) &
+      csL(s) = csL(Pt(s1)) & 
+      csR(s) = csR(Pt(s2))”));
+
+
+val Thm6_vertical_ex = prove_store("Thm6_vertical_ex",
+e0
+(rpt strip_tac >>
+ qby_tac ‘cpsb(s2,s1)’ 
+ >-- (rw[cpsb_def] >> fs[csB_cod,csT_dom,o_Cr1_eq,Pt_eq_eq])>>
+ drule Thm6_vertical_full >>
+ qexists_tac ‘Pt(s2 @ s1)’ >> arw[])
+(form_goal
+ “∀A s1:2->Exp(2,A) s2. 
+  csB(Pt(s1)) = csT(Pt(s2)) ⇒ 
+  ∃s. csL(s) = csL(Pt(s2)) @ csL(Pt(s1)) & 
+      csR(s) = csR(Pt(s2)) @ csR(Pt(s1)) &
+      csT(s) = csT(Pt(s1)) & 
+      csB(s) = csB(Pt(s2))”));
+
+
+val cs_vertical_ex = prove_store("cs_vertical_ex",
+e0
+()
+(form_goal
+ “∀A s1: 2 * 2 -> A s2: 2 * 2 -> A
+  ”));
 
 
 
