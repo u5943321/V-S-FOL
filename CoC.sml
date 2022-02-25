@@ -1450,9 +1450,34 @@ e0
 
 val cs_vertical_ex = prove_store("cs_vertical_ex",
 e0
-()
+(rpt strip_tac >>
+ qsspecl_then [‘Tp(s1)’,‘Tp(s2)’] assume_tac
+ Thm6_vertical_ex >>
+ rfs[Pt_Tp] >> qexists_tac ‘s’ >> arw[])
 (form_goal
- “∀A s1: 2 * 2 -> A s2: 2 * 2 -> A
+ “∀A s1: 2 * 2 -> A s2: 2 * 2 -> A.
+   csB(s1) = csT(s2) ⇒
+  ∃s. csL(s) = csL(s2) @ csL(s1) ∧
+      csR(s) = csR(s2) @ csR(s1) ∧
+      csT(s) = csT(s1) ∧
+      csB(s) = csB(s2)
+  ”));
+
+
+
+val cs_horizontal_ex = prove_store("cs_horizontal_ex",
+e0
+(rpt strip_tac >>
+ qsspecl_then [‘Tp(s1)’,‘Tp(s2)’] assume_tac
+ Thm6_ex >>
+ rfs[Pt_Tp] >> qexists_tac ‘s’ >> arw[])
+(form_goal
+ “∀A s1: 2 * 2 -> A s2: 2 * 2 -> A.
+   csR(s1) = csL(s2) ⇒
+  ∃s. csT(s) = csT(s2) @ csT(s1) ∧
+      csB(s) = csB(s2) @ csB(s1) ∧
+      csL(s) = csL(s1) ∧
+      csR(s) = csR(s2)
   ”));
 
 
