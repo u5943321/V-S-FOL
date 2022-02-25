@@ -806,6 +806,12 @@ e0
  “!A f:2->A. isid(f) ==> 
   (!g. cpsb(g,f) ==> g @ f = g)”));
 
+val _ = add_parse (int_of "¹")
+val _ = add_parse (int_of "²")
+val _ = add_parse (int_of "³")
+val _ = add_parse (int_of "ᵅ") 
+val _ = add_parse (int_of "ᵝ")  
+val _ = add_parse (int_of "ˠ")  
 
 
 val Tp0_ex = prove_store("Tp0_ex",
@@ -881,6 +887,9 @@ e0
  rw[Pa_distr,p12_of_Pa])
 (form_goal
  “!A B. Swap(B,A) o Swap(A,B) = id(A * B)”));
+
+
+
 
 (*
 
@@ -972,6 +981,331 @@ e0
 
 val csB_def = csB_ex |> spec_all |> ex2fsym0 "csB" ["cs"]
                      |> gen_all
+
+val Pt_ex = prove_store("Pt_ex",
+e0
+(rpt strip_tac >> 
+ qexists_tac ‘Ev(A,B) o Pa(p1(A,X), h o p2(A,X))’ >>
+ rw[])
+(form_goal “∀A B X h:X-> Exp(A,B). ∃pt. pt = Ev(A,B) o Pa(p1(A,X), h o p2(A,X))”));
+
+val Pt_def = Pt_ex |> spec_all |> ex2fsym0 "Pt" ["h"]
+                   |> gen_all |> store_as "Pt_def";
+
+(*exponential, on dom *)
+val Ed_ex = prove_store("Ed_ex",
+e0
+(rpt strip_tac >>
+ qexists_tac‘Tp(Ev(B,X) o Pa(f o p1(A,Exp(B,X)),p2(A,Exp(B,X))))’ >> rw[])
+(form_goal
+ “∀A B f:A->B X. ∃ed. ed = Tp(Ev(B,X) o Pa(f o p1(A,Exp(B,X)),p2(A,Exp(B,X))))”));
+
+val Ed_def = Ed_ex |> spec_all |> ex2fsym0 "Ed" ["f","X"]
+                   |> gen_all
+
+(*erase the label A^1 , an iso A^1 -> A*)
+val Er1_ex = prove_store("Er1_ex",
+e0
+(strip_tac >> qexists_tac ‘Ev(1,A) o Pa(To1(Exp(1,A)),id(Exp(1,A)))’ >> rw[])
+(form_goal
+ “∀A. ∃er1. er1 = Ev(1,A) o Pa(To1(Exp(1,A)),id(Exp(1,A)))”));
+
+val Er1_def = Er1_ex |> spec_all |> ex2fsym0 "Er1" ["A"]
+                     |> gen_all
+
+val A1f_ex = prove_store("A1f_ex",
+e0
+(strip_tac >> qexists_tac ‘Er1(A)  o Ed(1f,A)’ >> rw[])
+(form_goal
+ “∀A. ∃a1f. a1f = Er1(A) o Ed(1f,A)”));
+
+fun define_const f fsymname inputs = 
+let val (l,r) = dest_eq f
+    val (n,s) = dest_var l
+    val g = form_goal (mk_exists n s f)
+    val eth =
+        prove_store(fsymname ^ "_ex",e0
+                    (exists_tac r >> accept_tac (refl r))
+                    g)
+    val th = ex2fsym0 fsymname inputs eth |> gen_all
+                      |> store_as (fsymname ^ "_def")
+in (eth,th)
+end
+
+(*define_const “a1f = Er1(A) o Ed(1f,A)” "A1f" ["A"]*)
+
+(*
+val (Ed1_ex,Ed1_def) = define_const “a1f = Er1(A) o Ed(f:X->Y,A)” "Ed1" ["f","A"];
+
+*)
+
+
+val fun_pres_oa = prove_store("fun_pres_oa",
+e0
+(cheat)
+(form_goal
+ “∀A f:2->A g. cpsb(g,f) ⇒
+  ∀B k:A->B. k o (g @ f) = (k o g) @ (k o f)”));
+
+val To1_o_To1 = prove_store("To1_o_To1",
+e0
+(cheat)
+(form_goal
+ “∀A f:X->A. To1(A) o f = To1(X)”));
+
+
+
+val Ev_of_Tp = prove_store("Ev_of_Tp",
+e0
+(rpt strip_tac >> rw[Tp_def])
+(form_goal
+ “!A B X f:A * X ->B. 
+  Ev(A,B) o Pa(p1(A,X),Tp(f) o p2(A,X)) = f”));
+
+
+val Ev_of_Tp_el = prove_store("Ev_of_Tp_el",
+e0
+(rpt strip_tac >>
+ assume_tac Ev_of_Tp >> 
+ first_x_assum (qspecl_then [‘A’,‘B’,‘X’,‘f’] assume_tac) >>
+ qby_tac 
+ ‘Pa(a, Tp(f) o x) = Pa(p1(A, X), Tp(f) o p2(A, X)) o Pa(a,x)’ >--
+ (irule to_P_eq >> rw[p12_of_Pa] >> 
+  rw[p12_of_Pa,GSYM o_assoc] >> rw[o_assoc,p12_of_Pa]) >>
+ arw[GSYM o_assoc])
+(form_goal
+ “!A B X f:A * X ->B P a:P->A x: P ->X. 
+  Ev(A,B) o Pa(a, Tp(f) o x) = f o Pa(a,x)”));
+
+
+
+val Ev_of_Tp_el' = prove_store("Ev_of_Tp_el'",
+e0
+(rpt strip_tac >> 
+ qby_tac ‘Tp(f) = Tp(f) o id(P)’ >-- rw[idR] >>
+ once_arw[] >> rw[Ev_of_Tp_el])
+(form_goal
+“!A B P f:A * P -> B  a:P -> A.
+Ev(A, B) o Pa(a, Tp(f)) = f o Pa(a, id(P))”));
+
+
+val A1f_of_cs = prove_store("A1f_of_cs",
+e0
+(rpt strip_tac >> 
+ rw[Er1_def,Ed_def,Pt_def,dom_def,Pa_distr,
+    o_assoc,To1_o_To1,idL,Ev_of_Tp_el,Ev_of_Tp_el',
+    p12_of_Pa,one_to_one_id,idR])
+(form_goal
+ “∀A f:1-> Exp(2,A).
+  (Er1(A) o Ed(0f,A)) o f = dom(Pt(f) o Pa(id(2),To1(2)))”));
+
+val csT_Pt = prove_store("csT_Pt",
+e0
+(rpt strip_tac >> 
+ rw[Er1_def,Ed_def,Pt_def,csT_def] >>
+ rw[Pa_distr,o_assoc,To1_o_To1,idL] >>
+ rw[Ev_of_Tp_el,o_assoc,Pa_distr,p12_of_Pa] >>
+ rw[Ev_of_Tp_el',Pa_distr,o_assoc,GSYM Swap_def,p12_of_Pa,
+    two_def,zero_def] )
+(form_goal 
+ “∀A f:2-> Exp(2,A). csT(Pt(f)) = 
+  (Er1(A) o Ed(0f,A)) o Tp(Pt(f)o Swap(2,2))”));
+
+
+
+(*
+A0f: A^2 -> A
+
+2 -> A^2 -> A
+
+
+*)
+
+
+val csL_Pt = prove_store("csL_Pt",
+e0
+(rpt strip_tac >> 
+ rw[Er1_def,Ed_def,Pt_def,csL_def] >>
+ rw[Pa_distr,o_assoc,To1_o_To1,idL] >>
+ rw[Ev_of_Tp_el,o_assoc,Pa_distr,p12_of_Pa] >>
+ rw[Ev_of_Tp_el',Pa_distr,o_assoc,GSYM Swap_def,p12_of_Pa,
+    two_def,zero_def,idR] )
+(form_goal 
+ “∀A f:2-> Exp(2,A). csL(Pt(f)) = 
+ (Er1(A) o Ed(0f,A)) o f”));
+
+
+val csR_Pt = prove_store("csR_Pt",
+e0
+(rpt strip_tac >> 
+ rw[Er1_def,Ed_def,Pt_def,csR_def] >>
+ rw[Pa_distr,o_assoc,To1_o_To1,idL] >>
+ rw[Ev_of_Tp_el,o_assoc,Pa_distr,p12_of_Pa] >>
+ rw[Ev_of_Tp_el',Pa_distr,o_assoc,GSYM Swap_def,p12_of_Pa,
+    two_def,one_def,idR] )
+(form_goal 
+ “∀A f:2-> Exp(2,A). csR(Pt(f)) = 
+ (Er1(A) o Ed(1f,A)) o f”));
+
+
+
+val Thm6_vertical = prove_store("Thm6_vertical",
+e0
+(rpt strip_tac >> rw[csL_Pt,csR_Pt] >> drule fun_pres_oa >> 
+ arw[])
+(form_goal
+ “∀A s1:2-> Exp(2,A) s2:2-> Exp(2,A). cpsb(s2,s1) ⇒ 
+  csL(Pt(s2 @ s1)) = csL(Pt(s2)) @ csL(Pt(s1))  ∧
+  csR(Pt(s2 @ s1)) = csR(Pt(s2)) @ csR(Pt(s1))”));
+
+val csL_csT = prove_store("csL_csT",
+e0
+(rw[csL_def,csT_def,o_assoc,GSYM Swap_def,p12_of_Pa,
+    Pa_distr])
+(form_goal
+ “∀A f: 2 * 2 -> A. csT(f o Swap(2,2)) = csL(f)”));
+
+
+
+val csR_csB = prove_store("csR_csB",
+e0
+(rw[csR_def,csB_def,o_assoc,GSYM Swap_def,p12_of_Pa,
+    Pa_distr])
+(form_goal
+ “∀A f: 2 * 2 -> A. csB(f o Swap(2,2)) = csR(f)”));
+
+
+val csR_csB' = prove_store("csR_csB'",
+e0
+(rw[csR_def,csB_def,o_assoc,GSYM Swap_def,p12_of_Pa,
+    Pa_distr])
+(form_goal
+ “∀A f: 2 * 2 -> A. csR(f o Swap(2,2)) = csB(f)”));
+
+val csT_dom = prove_store("csT_dom",
+e0
+(rw[csT_def,dom_def,Pt_def,o_assoc,Pa_distr,p12_of_Pa,
+    two_def,zero_def])
+(form_goal
+ “∀A s:2->Exp(2,A). csT(Pt(s)) = Pt(dom(s)) o Pa(id(2),To1(2))”));
+
+
+val csB_cod = prove_store("csB_cod",
+e0
+(rw[csB_def,cod_def,Pt_def,o_assoc,Pa_distr,p12_of_Pa,
+    two_def,one_def])
+(form_goal
+ “∀A s:2->Exp(2,A). csB(Pt(s)) = Pt(cod(s)) o Pa(id(2),To1(2))”));
+
+val pT_ex = prove_store("pT_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘(Pt(h) o Swap(X,A))’ >>
+ rw[])
+(form_goal “∀A B X h:X->Exp(A,B). 
+ ∃pt. pt = Pt(h) o Swap(X,A)”));
+
+val pT_def = pT_ex |> spec_all |> ex2fsym0 "pT" ["h"]
+                   |> gen_all
+
+
+(* multiply by 1 is iso
+
+A -- Pa(id(A),To1(A)) --> A * 1 -- p1(A,1) --> A
+*)
+
+val Cr1_iso = prove_store("Cr1_iso",
+e0
+(strip_tac >> rw[p12_of_Pa,Pa_distr,one_to_one_id] >>
+ flip_tac >> irule is_Pa >> rw[idL,idR,To1_def])
+(form_goal “∀A. p1(A,1) o Pa(id(A),To1(A)) = id(A) & 
+                Pa(id(A),To1(A)) o p1(A,1) = id(A * 1)”));
+              
+
+val o_Cr1_eq = prove_store("o_Cr1_eq",
+e0
+(cheat)
+(form_goal
+ “∀A B.
+  (∀f:A->B g. f o p1(A,1) = g o p1(A,1) ⇔ f = g) ∧ 
+  (∀f:A * 1->B g. f o Pa(id(A),To1(A)) = g o Pa(id(A),To1(A)) ⇔ 
+  f = g)”));
+ 
+generate lemma which says composing with them eq iff eq
+
+*)
+
+val is_Tp = prove_store("is_Tp",
+e0
+(rpt strip_tac >> 
+ qspecl_then [‘A’,‘B’,‘X’,‘f’] (assume_tac o conjE2) Tp_def>>
+ first_x_assum irule >> arw[])
+(form_goal
+ “!A B X f:A * X ->B h:X-> Exp(A,B). 
+  Ev(A,B) o Pa(p1(A,X),h o p2(A,X)) = f ==> h = Tp(f)”));
+
+val Ev_eq_eq = prove_store("Ev_eq_eq",
+e0
+(rpt strip_tac >> 
+ qsuff_tac ‘f = Tp(Ev(A,B) o Pa(p1(A,X),g o p2(A,X))) & 
+  g = Tp(Ev(A,B) o Pa(p1(A,X),g o p2(A,X)))’
+ >-- (rpt strip_tac >> once_arw[] >> rw[]) >>
+ strip_tac (* 2 *) >--
+ (irule is_Tp >> first_x_assum accept_tac) >>
+ irule is_Tp >> rw[])
+(form_goal
+ “!A B X f g. Ev(A,B) o Pa(p1(A,X),f o p2(A,X)) = 
+              Ev(A,B) o Pa(p1(A,X),g o p2(A,X)) ==> f = g”));
+
+
+val Pt_eq_eq = prove_store("Pt_eq_eq",
+e0
+(rpt strip_tac >> dimp_tac >> rpt strip_tac >> arw[] >>
+ irule Ev_eq_eq >> arw[GSYM Pt_def])
+(form_goal
+ “∀A B X f:X-> Exp(A,B) g. Pt(f) = Pt(g) ⇔f = g”));
+
+
+val Pt_Tp = prove_store("Pt_Tp",
+e0
+(rw[Pt_def,Ev_of_Tp])
+(form_goal
+ “∀A B X f:A * X -> B. Pt(Tp(f)) = f”));
+
+
+
+val Tp_Pt = prove_store("Tp_Pt",
+e0
+(rpt strip_tac >> rw[Pt_def] >> flip_tac >> irule is_Tp >>
+ rw[])
+(form_goal
+ “∀A B X f:X -> Exp(A,B). Tp(Pt(f)) = f”));
+
+
+val Thm6_0 = prove_store("Thm6_0",
+e0
+(strip_tac >> 
+strip_tac >> strip_tac >> strip_tac >> 
+ irule Thm6_vertical >>
+ rw[cpsb_def] >> fs[GSYM csL_csT,GSYM csR_csB]  >>
+ fs[GSYM pT_def] >> flip_tac >>
+ qby_tac ‘Pt(Tp(pT(s1))) = pT(s1)’ >-- rw[Pt_Tp] >>
+ qby_tac
+ ‘csB(Pt(Tp(pT(s1)))) = csT(Pt(Tp(pT(s2))))’
+ >-- arw[Pt_Tp] >>
+ pop_assum mp_tac >> pop_assum_list (K all_tac) >>
+ strip_tac >> fs[csB_cod,csT_dom] >>
+ fs[o_Cr1_eq,Pt_eq_eq])
+(form_goal
+ “∀A s1:2 -> Exp(2,A) s2. 
+  csR(Pt(s1)) = csL(Pt(s2)) ⇒ 
+  csL(Pt(Tp(pT(s2)) @ Tp(pT(s1)))) = 
+  csL(Pt(Tp(pT(s2)))) @ csL(Pt(Tp(pT(s1)))) &
+  csR(Pt(Tp(pT(s2)) @ Tp(pT(s1)))) = 
+  csR(Pt(Tp(pT(s2)))) @ csR(Pt(Tp(pT(s1))))”));
+
+val Thm6 = Thm6_0 |> rewr_rule[Pt_Tp] |> store_as "Thm6";
+
+
 
 val Thm7 = prove_store("Thm7",
 e0
