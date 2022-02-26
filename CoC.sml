@@ -1615,6 +1615,109 @@ e0
    csB(q) = g'  
    ”));
 
+val Poa_ab = prove_store("Poa_ab",
+e0
+(rpt gen_tac >> disch_tac >>
+ irule Poa_def >> fs[dom_def,cod_def,CC4_2])
+(form_goal
+ “∀A u v. dom(v) = cod(u) ⇒ 
+  (Poa(1f, 0f, α, β, u, v) o α = u &
+  Poa(1f, 0f, α, β, u, v) o β = v) & 
+  !a' : 3 -> A.
+   a' o α = u & a' o β = v ==>
+   a' = Poa(1f, 0f, α, β, u, v)”));
+
+val Poa_ab_eqn = Poa_ab |> strip_all_and_imp |> conjE1 
+                     |> disch_all |> gen_all
+
+val is_Poa_ab = Poa_ab |> strip_all_and_imp |> conjE2 
+                     |> disch_all |> gen_all
+
+val cs2_RT_cpsb = prove_store("cs2_RT_cpsb",
+e0
+(rw[cpsb_def,dom_def,cod_def] >> irule to_P_eq >>
+ rw[p12_of_Pa,GSYM o_assoc,one_def,two_def,zero_def] >>
+ rw[o_assoc,one_to_one_Id,IdL,IdR])
+(form_goal “cpsb(Pa(𝟙, 𝟚),Pa(𝟚, 𝟘))”));
+
+
+
+val cs2_BL_cpsb = prove_store("cs2_BL_cpsb",
+e0
+(rw[cpsb_def,dom_def,cod_def] >> irule to_P_eq >>
+ rw[p12_of_Pa,GSYM o_assoc,one_def,two_def,zero_def] >>
+ rw[o_assoc,one_to_one_Id,IdL,IdR])
+(form_goal “cpsb(Pa(𝟚, 𝟙),Pa(𝟘, 𝟚))”));
+
+
+val oa_def' = rewr_rule [GSYM cpsb_def] oa_def
+
+val Poa_ab_eqn' = rewr_rule [GSYM cpsb_def] Poa_ab_eqn
+
+
+val o4_middle = prove_store("o4_middle",
+e0
+(rw[o_assoc])
+(form_goal “∀A B C D K f:A->B g:B->C h:C->D j:D->K.
+ j o h o g o f = j o (h o g) o f”));
+
+val RT_cs2 = prove_store("RT_cs2",
+e0
+(assume_tac cs2_RT_cpsb >> drule oa_def'>>
+ arw[] >>
+ irule to_P_eq >> rw[p12_of_Pa] >> strip_tac >> 
+ irule dom_cod_is_two >> rw[dom_def,cod_def,o_assoc,CC4_1] >>
+ drule Poa_ab_eqn' >> 
+ arw[o4_middle] >>
+ rw[GSYM o_assoc,p12_of_Pa,one_def,two_def,zero_def,IdL] >>
+ rw[o_assoc,one_to_one_Id,IdR])
+(form_goal “Pa(𝟙, 𝟚) @ Pa(𝟚, 𝟘) = Pa(𝟚,𝟚)”));
+
+
+val BL_cs2 = prove_store("BL_cs2",
+e0
+(assume_tac cs2_BL_cpsb >> drule oa_def'>>
+ arw[] >>
+ irule to_P_eq >> rw[p12_of_Pa] >> strip_tac >> 
+ irule dom_cod_is_two >> rw[dom_def,cod_def,o_assoc,CC4_1] >>
+ drule Poa_ab_eqn' >> 
+ arw[o4_middle] >>
+ rw[GSYM o_assoc,p12_of_Pa,one_def,two_def,zero_def,IdL] >>
+ rw[o_assoc,one_to_one_Id,IdR])
+(form_goal “Pa(𝟚, 𝟙) @ Pa(𝟘, 𝟚) = Pa(𝟚,𝟚)”));
+
+val cs_comm = prove_store("cs_comm",
+e0
+(rpt strip_tac >> 
+ rw[csR_def,csT_def,csB_def,csL_def] >>
+ assume_tac cs2_BL_cpsb >>
+ assume_tac cs2_RT_cpsb >> 
+ drule $ GSYM fun_pres_oa >> arw[] >>
+ rev_drule $ GSYM fun_pres_oa >> arw[] >>
+ rw[BL_cs2,RT_cs2]) 
+(form_goal “∀A s: 2 * 2 ->A. csR(s) @ csT(s) = csB(s) @ csL(s)”));
+
+val Thm8 = prove_store("Thm8",
+e0
+(rpt strip_tac >>
+ drule $ iffLR cpsb_def >> rev_drule $ iffLR cpsb_def >>
+ qby_tac ‘∃q: 2 * 2 -> A. csT(q) = h & csR(q) = g & 
+ csL(q) = h ∧ csB(q) = g’
+ >-- (irule Thm7 >> arw[]) >> 
+ pop_assum strip_assume_tac >> 
+ qby_tac ‘∃p: 2 * 2 -> A. csT(p) = g & csR(p) = f & 
+ csL(p) = g ∧ csB(p) = f’
+ >-- (irule Thm7 >> arw[]) >>
+ pop_assum strip_assume_tac >>
+ qby_tac ‘csR(q) = csL(p)’ >-- arw[] >>
+ drule cs_horizontal_ex >>
+ pop_assum strip_assume_tac >>
+ qsspecl_then [‘s’] assume_tac cs_comm >>
+ rfs[])
+(form_goal
+ “∀A f:2->A g h. cpsb(g,h) ∧ cpsb(f,g) ⇒ 
+ (f @ g) @ h = f @ g @ h”));
+
 
 val iso_def = define_pred
 “!A f:2->A. iso(f) <=> 

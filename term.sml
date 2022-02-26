@@ -294,7 +294,7 @@ fun match_term nss pat ct (env:vd) =
     case (view_term pat,view_term ct) of 
         (vFun(f1,s1,l1),vFun(f2,s2,l2)) => 
         if f1 <> f2 then 
-            raise TER("match_term.different function names: ",[],[pat,ct])
+            raise TER("match_term.different function names: " ^ f1 ^ " , " ^ f2,[],[pat,ct])
         else (match_sort nss s1 s2 (match_tl nss l1 l2 env)  
              handle e => raise wrap_ter "match_term." [s1,s2] [pat,ct] e)
       | (vVar(n1,s1),_) => 
@@ -659,7 +659,7 @@ fun pmatch_t bs nss pat ct (env:vd) =
     case (pat,ct) of 
         (Fun(f1,s1,l1),Fun(f2,s2,l2)) => 
         if f1 <> f2 then 
-            raise TER("match_term.different function names: ",[],[pat,ct])
+            raise TER("match_term.different function names: "^ f1 ^ " , " ^ f2,[],[pat,ct])
         else (pmatch_s bs nss s1 s2 (pmatch_tl bs nss l1 l2 env)  
              handle e => raise wrap_ter "pmatch_term." [s1,s2] [pat,ct] e)
       | (Var(n1,s1),Bound i) =>
