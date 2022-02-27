@@ -692,7 +692,7 @@ val oa_def = oa_ex |> spec_all |> undisch
 (* THEOREM 4. The composite in 2 of the nonIdentity arrow 12 with either of the
  Identity arrows 0 ? !2 and 0 a !2 is 1*)
 
-val dom_cod_zot = prove_store("dom_one",
+val dom_cod_zot = prove_store("dom_cod_zot",
 e0
 (rw[zero_def,one_def,dom_def,cod_def,o_assoc,
     one_to_one_Id,IdR,two_def,IdL])
@@ -1724,6 +1724,283 @@ val iso_def = define_pred
  ?g:2->A. dom(g) = cod(f) & dom(f) = cod(g) &
  g @ f = dom(f) o To1(2) & f @ g = cod(f) o To1(2) ”
 
+CC5. If R(f, g) defines a functorial relation from arrows of A to those of B, then
+ there is a functor F: A -+ B s
+
+(*
+usual functor:
+
+
+F(id(A)) = id(F(A))
+
+F(g o f) = F(g) o F(f)
+
+∀a:2->A. ∃!b:2->B. R(a,b) ∧
+∀a:2->A. isid(a) ⇒ ∀b. R(a,b) ⇒ isid(b)∧
+∀f:2->A g:2->A h:2->B. R(g o f,h) ⇔ 
+∀f1 g1. R(g,g1) ∧ R(f,f1) ⇒ h = g1 @ f1 ⇒
+∃!func:A->B.
+∀f:2->A g:2->B. g o f = 
+
+∀b. R(id(a),b) ⇔ b = id 
+
+∀h. R(g o f,h) ⇔ ∃g1 f1. R(g,g1) ∧ R(f,f1) ∧ h = g1 @ f1
+
+
+*)
+
+
+val CC5 = store_ax("CC5",
+“∀A B. 
+ (∀f:2->A. ∃!g:2->B. R(f,g)) ∧
+ (∀f:2->A g:2->B. R(f,g) ⇒ 
+  R(id(dom(f)),id(dom(g))) ∧ R(id(cod(f)),id(cod(g)))) ∧
+ (∀f:2->A g:2->A h: 2->B. cpsb(g,f) ⇒
+  R(g @ f, h) ⇒ ∀f1 g1. R(f,f1) ∧ R(g,g1) ⇒ h = g1 @ f1) ⇒
+ ∃cf:A->B. ∀a:2->A b:2->B. R(a,b) ⇔ cf o a = b”)
+
+
+val one2one_def = define_pred “∀A B f:A->B. one2one(f) ⇔ 
+ (∀a1:2->A a2:2->A. f o a1 = f o a2 ⇒ a1 = a2)”;
+
+val onto_def = define_pred “∀A B f:A->B. onto(f) ⇔ 
+ (∀b:2->B. ∃a:2->A. b = f o a)”;
+
+
+fun MAP f l = 
+   let
+     (* map2 is the version where something has changed *)
+     fun map2 A [] = List.rev A
+       | map2 A (h::t) = map2 ((f h handle e => h) :: A) t
+     (* map1 is the version to call where nothing has changed yet *)
+     fun map1 n [] = raise UNCHANGED
+       | map1 n (h::t) = 
+           case total f h of
+             SOME fh => map2 (fh::(rev $ List.take(l,n))) t
+           | NONE => map1 (n + 1) t
+   in
+     map1 0 l
+   end
+
+
+fun fVar_Inst_th (pair as (P,(argl:(string * sort) list,Q0))) th = 
+    let val (ct,asl,w) = dest_thm th
+        val lcs = List.foldr
+                      (fn (ns,nss) => HOLset.delete(nss,ns)
+                                      handle _ => nss) 
+                      (fvf Q0) argl
+        val ct' = HOLset.union(ct,lcs)
+        val aslw' = MAP (fVar_Inst_f pair) (w :: asl)
+    in mk_thm (ct',tl aslw',hd aslw')
+    end
+
+fun fVar_sInst_th f f' th = 
+    let val (P,args) = dest_fvar f
+        val vl = List.map dest_var args
+    in fVar_Inst_th (P,(vl,f')) th
+    end
+
+val fun_ext = prove_store("fun_ext",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
+ ccontra_tac >> drule CC2_2 >>
+ pop_assum strip_assume_tac >>
+ rfs[])
+(form_goal “∀A B f:A->B g. (∀a:2->A. f o a = g o a) ⇔ f = g”));
+
+
+val fun_of_id = prove_store("fun_of_id",
+e0
+(rw[id_def,dom_def,o_assoc,cod_def])
+(form_goal “∀A B f:A->B g:2->A. id(dom(f o g)) = f o id(dom(g)) ∧
+  id(cod(f o g)) = f o id(cod(g))”));
+
+local
+val l = CC5 |> qspecl [‘B’,‘A’] |>
+fVar_sInst_th 
+“R(b:2->B,a:2->A)”
+“b:2->B = f o a:2->A”
+in
+val Thm9 = prove_store("Thm9",
+e0
+(rpt strip_tac >> rw[Iso_def] >> 
+ assume_tac l >>
+ qsuff_tac
+ ‘∃cf:B->A. ∀b:2->B a:2->A. b = f o a ⇔ cf o b = a’
+ >-- (strip_tac >>
+ qexists_tac ‘cf’ >>
+ pop_assum (assume_tac o GSYM) >> 
+ once_arw[GSYM fun_ext] >> arw[o_assoc,IdL] >>
+ dflip_tac >> pop_assum (assume_tac o GSYM) >> arw[]) >>
+ first_x_assum irule >> rpt strip_tac (* 4 *)
+ >-- (fs[] >> 
+ qby_tac ‘cpsb(g1,f1)’ 
+ >-- (fs[cpsb_def,dom_def,cod_def,o_assoc,one2one_def] >>  
+     qsuff_tac ‘g1 o 0f o To1(2) = f1 o 1f o To1(2)’
+     >-- (strip_tac >> ccontra_tac >> drule CC2_2 >>
+         fs[To1_def,o_assoc]) >>
+     first_x_assum irule >> fs[GSYM o_assoc]) >>
+ drule $ GSYM fun_pres_oa >> 
+ fs[] >> fs[one2one_def] >> first_x_assum irule >> arw[])
+ >-- (uex_tac >> fs[onto_def] >>
+     first_x_assum (qspecl_then [‘f'’] strip_assume_tac) >>
+     qexists_tac ‘a’ >> arw[] >> rpt strip_tac >>
+     fs[one2one_def] >> first_x_assum irule >> arw[])
+ >-- (arw[fun_of_id]) >>
+ arw[fun_of_id]
+ )
+(form_goal
+ “∀A B f:A->B. one2one(f) ∧ onto(f) ⇒ Iso(f)”));
+end
+
+(*
+ THEOREM 10. A monic i: I >-4 A factors through j: J >-4 A if every arrow factor-
+ ing through i factors throug
+
+*)
+
+val Mono_one2one = prove_store("Mono_one2one",
+e0
+(rw[Mono_def,one2one_def] >> rpt strip_tac >>
+ first_x_assum irule >> arw[])
+(form_goal “∀A B f:A->B. Mono(f) ⇒ one2one(f)”));
+
+
+
+val Pb_Mono_Mono = prove_store("Pb_Mono_Mono",
+e0
+(rpt strip_tac >> rw[Mono_def] >> rpt strip_tac >>
+ drule $ iffLR isPb_expand >>
+ pop_assum strip_assume_tac >>
+ qsuff_tac
+ ‘f o p o h = g o q o h’ >--
+ (strip_tac >> first_x_assum drule >>
+ pop_assum strip_assume_tac >>
+ qsuff_tac ‘g' = a & h = a’ >-- 
+ (strip_tac >> arw[]) >> strip_tac >> 
+ first_x_assum irule >> arw[] >>
+ fs[Mono_def] >> first_x_assum irule >> 
+ qpick_x_assum ‘f o p = g o q’ (assume_tac o GSYM) >>
+ arw[GSYM o_assoc] >> arw[o_assoc]) >>
+ arw[GSYM o_assoc])
+(form_goal
+ “!X Z f:X->Z Y g:Y->Z P p:P->X q:P->Y. 
+  isPb(f,g,p,q) ==> Mono(g) ==> Mono(p)”));
+
+
+val Thm10 = prove_store("Thm10",
+e0
+(rpt strip_tac >> dimp_tac >> rpt strip_tac 
+ >-- (rfs[o_assoc] >> qexists_tac ‘i0 o ai’ >> rw[]) >>
+ qsspecl_then [‘i’,‘j’] strip_assume_tac isPb_ex >>
+ qby_tac ‘Iso(p)’
+ >-- (irule Thm9 >> 
+     drule Pb_Mono_Mono >> first_x_assum drule >> 
+     drule Mono_one2one >> arw[] >>
+     rw[onto_def] >> strip_tac >>
+     drule $ iffLR isPb_def >> fs[] >>
+     first_x_assum (qsspecl_then [‘i o b’,‘b’] assume_tac) >>
+     fs[] >>
+     first_x_assum drule >> 
+     pop_assum (assume_tac o uex_expand) >> fs[] >>
+     qexists_tac ‘a’ >> arw[]) >>
+ fs[Iso_def] >> qexists_tac ‘q o f'’ >> arw[] >>
+ drule $ iffLR isPb_def >> pop_assum (assume_tac o GSYM) >>
+ arw[GSYM o_assoc] >> arw[o_assoc,IdR])
+(form_goal
+ “∀I A i:I->A J j:J->A. Mono(i) ∧ Mono(j) ⇒
+  ((∃i0:I->J. i = j o i0) ⇔ 
+   (∀a:2->A ai:2->I. a = i o ai ⇒ ∃aj:2->J. a = j o aj))”));
+
+(*
+THEOREM 11. 3 has only the arrows a, β and γ and th
+*)
+
+val ba_cpsb = prove_store("ba_cpsb",
+e0
+(rw[cpsb_def] >> assume_tac CC4_2 >> fs[isPo_def,dom_def,cod_def])
+(form_goal
+ “cpsb(β,α)”));
+
+val oa_ba = prove_store("oa_ba",
+e0
+(assume_tac ba_cpsb >> drule oa_def' >> arw[] >>
+ fs[cpsb_def] >> drule Poa_ab >> fs[] >>
+ first_x_assum (qspecl_then [‘Id(3)’] assume_tac) >>
+ fs[IdL] >> pop_assum (assume_tac o GSYM) >> arw[IdL])
+(form_goal “β @ α = γ”));
+
+val Poa_ab_Id = prove_store("Poa_ab_Id",
+e0
+(assume_tac ba_cpsb >> fs[cpsb_def] >> drule Poa_ab >>
+ rfs[] >> flip_tac >> first_x_assum irule >>
+ rw[IdL])
+(form_goal “Poa(1f,0f,α,β,α,β) = Id(3)”));
+
+
+val t2tt_cases = prove_store("t2tt_cases",
+e0
+(cheat)
+(form_goal “∀f: 2 -> 2 * 2. 
+ f = Pa(𝟚, 𝟘) | f = Pa(𝟙, 𝟚) | f = Pa(𝟘, 𝟚) | f = Pa(𝟚, 𝟙) | 
+ f = Pa(𝟚, 𝟚) | 
+ f = id(Pa(0f,0f)) | f = id(Pa(1f,0f)) |
+ f = id(Pa(0f,1f)) | f = id(Pa(1f,1f))”));
+ 
+val t2tt_dom_cod = prove_store("t2tt_dom_cod",
+e0
+(cheat)
+(form_goal “dom(Pa(𝟚, 𝟘)) = Pa(0f,0f) ∧ dom(Pa(𝟙, 𝟚)) = Pa(1f, 0f) ∧ dom(Pa(𝟚, 𝟙)) = Pa(0f, 1f) ∧ cod(Pa(𝟙, 𝟚)) = Pa(1f, 1f) ∧
+ cod(Pa(𝟚,𝟘)) = Pa(1f,0f)”));
+
+
+
+val Thm11 = prove_store("Thm11",
+e0
+(qsuff_tac
+ ‘∃P: 3 -> 2 * 2 i. i o P = Id(3) ∧ 
+  ∀f:2-> 2 * 2. i o f = α | i o f = β | i o f = γ | i o f = id(dom(α)) | i o f = id(cod(β)) | i o f = id(dom(β))’
+ >-- (rpt strip_tac >>
+     first_x_assum (qspecl_then [‘P o f’] assume_tac) >>
+     rfs[GSYM o_assoc,IdL]) >>
+ qsuff_tac ‘∃P:3->2 * 2. P o α = Pa(𝟚,𝟘) ∧ P o β = Pa(𝟙,𝟚) ∧ P o γ = Pa(𝟚,𝟚) ∧ ∃i: 2 * 2 -> 3. csT(i) = α ∧ csR(i) = β ∧ csL(i) = id(dom(α)) ∧ csB(i) = γ’
+ >-- (strip_tac >>
+     qexistsl_tac [‘P’,‘i’] >> 
+     fs[csT_def,csR_def,csL_def,csB_def] >>
+     qby_tac ‘i o P = Id(3)’
+     >-- (rw[GSYM Poa_ab_Id] >>
+         assume_tac Poa_ab >> fs[GSYM cpsb_def] >>
+         assume_tac ba_cpsb >> first_x_assum drule >>
+         fs[] >> first_x_assum irule >> arw[o_assoc]) >>
+     arw[] >> strip_tac >>
+     qsspecl_then [‘f’] strip_assume_tac t2tt_cases >>
+     fs[] (* 5 *)
+     >-- (*𝟚,𝟚 case*) (rw[GSYM RT_cs2] >>
+         assume_tac cs2_RT_cpsb >> drule fun_pres_oa >>
+         arw[oa_ba])
+     >-- (qpick_x_assum ‘i o Pa(𝟚, 𝟘) = α’ (assume_tac o GSYM) >>
+         arw[fun_of_id,t2tt_dom_cod]) 
+     >-- (qpick_x_assum ‘i o Pa(𝟙, 𝟚) = β’ (assume_tac o GSYM) >>
+         arw[fun_of_id,t2tt_dom_cod]) 
+     >-- (qpick_x_assum ‘i o Pa(𝟚, 𝟙) = γ’ (assume_tac o GSYM) >>
+          assume_tac CC4_1 >> fs[GSYM dom_def] >>
+          qpick_x_assum ‘dom(γ) = dom(α)’ (assume_tac o GSYM) >>
+          arw[fun_of_id,t2tt_dom_cod]) >>
+     qpick_x_assum ‘i o Pa(𝟙, 𝟚) = β’ (assume_tac o GSYM) >>
+     arw[fun_of_id,t2tt_dom_cod] >> 
+     assume_tac CC4_1 >> fs[GSYM dom_def] >>
+     qpick_x_assum ‘dom(γ) = dom(α)’ (assume_tac o GSYM) >>
+     arw[fun_of_id,t2tt_dom_cod]) >> 
+ qby_tac ‘dom(Pa(𝟙,𝟚)) = cod(Pa(𝟚,𝟘))’ 
+ >-- rw[t2tt_dom_cod] >>
+ drule Poa_ab >>
+ qexists_tac ‘Poa(1f, 0f, α, β, Pa(𝟚, 𝟘), Pa(𝟙, 𝟚))’ >>
+ arw[] >>
+ rw[GSYM oa_ba] >> assume_tac ba_cpsb >> drule fun_pres_oa >>
+ arw[RT_cs2] >>
+ irule Thm7 >> cheat(*trivial*)
+     )
+(form_goal “∀f:2->3. f = α | f = β | f = γ | f = id(dom(α)) | f = id(cod(β)) | f = id(dom(β))”));
 
 val CC6 = store_ax("CC6",
 “?A f:2->A. iso(f) & ~isid(f)”); 
