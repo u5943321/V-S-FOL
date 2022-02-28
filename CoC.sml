@@ -2141,6 +2141,21 @@ val Adj_def = define_pred “
  vo(Lw(ε,L),Rw(L,η))  = ID(L) ∧ 
  vo(Rw(R,ε),Lw(η,R))  = ID(R)”
 
+val UFrom_def = define_pred
+“∀D C F:D->C x y f.UFrom(F,x:1->C,y:1->D,f:2->C) ⇔ 
+ dom(f) = F o y ∧ cod(f) = x ∧
+ (∀x':1->D f':2-> C. dom(f') = F o x' ∧ cod(f') = x ⇒
+ ∃!fh:2->D. f' = f @ (F o fh))”
+
+val Thm13 = prove_store("Thm13",
+e0
+()
+(form_goal
+ “∀X A F:X->A. 
+  (∀x:1->X f:2->A. U(x,f) ⇒ UFrom(F,cod(f),x,f)) ∧
+  (∀a:1->A. ∃!x:1->X f:2->A. cod(f) = a ∧ U(x,f)) ⇒
+  ∃!G:A->X η ε:A->Exp(2,A). Adj(F,G,η,ε) ∧
+   ∀a:1->A. cod(cpnt(ε,a)) = a ∧ U(G o a,cpnt(ε,a))”));
 
 val CC6 = store_ax("CC6",
 “?A f:2->A. iso(f) & ~isid(f)”); 
