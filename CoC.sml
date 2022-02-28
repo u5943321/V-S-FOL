@@ -2002,6 +2002,146 @@ e0
      )
 (form_goal “∀f:2->3. f = α | f = β | f = γ | f = id(dom(α)) | f = id(cod(β)) | f = id(dom(β))”));
 
+
+val _ = add_parse (int_of "η")
+
+(*
+val Laj_def = 
+
+val AJC_def = 
+“∀ajc:1->Exp(X,A) * Exp(A,X) * Exp(X,Exp(X,2)) * Exp(A,Exp(A,2)). 
+ AJC(cj) ⇔ 
+ ”
+
+prove_store("AJC_def",
+*)
+
+val cpnt_ex = prove_store("cpnt_ex",
+e0
+(rpt strip_tac >> 
+ qexists_tac ‘Pt(η o a) o Pa(Id(2),To1(2))’ >> rw[])
+(form_goal “∀A B η:A -> Exp(2,B) a. ∃cpnt.cpnt = Pt(η o a) o Pa(Id(2),To1(2))”));
+
+val cpnt_def = cpnt_ex |> spec_all |> ex2fsym0 "cpnt" ["η","a"]
+                       |> gen_all |> store_as "cpnt_def";
+
+
+
+val Nt_def = define_pred “∀A B F G η. Nt(η:A -> Exp(2,B),F:A->B,G:A->B) ⇔ 
+ (∀f:2->A. csL(Pt(η o f)) = F o f ∧ csR(Pt(η o f)) = G o f)”
+
+
+val all_Nt = prove_store("all_Nt",
+e0
+(cheat)
+(form_goal “∀A B η:A -> Exp(2,B). 
+ Nt(η,Er1(B) o  Ed(0f,B) o η, Er1(B) o Ed(1f,B) o η)”));
+
+
+
+
+(*
+
+prove as thms that:
+
+(∀a:1->A. dom(cpnt(η,a)) = F o a ∧ cod(cpnt(η,a)) = G o a) ∧ 
+ (∀f:2->A. (G o f) @ cpnt(η,dom(f)) = cpnt(η,cod(f)) @ (F o f))
+
+*)
+
+
+val ID_ex = prove_store("ID_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘Tp(F o p2(2,A))’ >> rw[])
+(form_goal “∀A B F:A->B. ∃IDF.IDF = Tp(F o p2(2,A))”));
+
+val ID_def = ID_ex |> spec_all |> ex2fsym0 "ID" ["F"] |> gen_all
+                   |> store_as "ID_def";
+
+(*exponential, cod*)
+val Ec_ex = prove_store("Ec_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘Tp(f o Ev(C,A))’ >> rw[])
+(form_goal “∀A B f:A->B C. ∃ec:Exp(C,A)->Exp(C,B). ec = Tp(f o Ev(C,A))”));
+
+val Ec_def = Ec_ex |> spec_all |> ex2fsym0 "Ec" ["f","C"]
+                   |> store_as "Ec_def";
+
+val Rw_ex = prove_store("Rw_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘Ec(H,2) o η’ >> rw[])
+(form_goal “∀A B η:A -> Exp(2,B) C H:B->C. ∃lw. lw = Ec(H,2) o η”));
+
+
+val Lw_ex = prove_store("Lw_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘η o H’ >> rw[])
+(form_goal “∀A B η:A -> Exp(2,B) X H:X->A. ∃rw. rw = η o H”));
+
+val Lw_def = Lw_ex |> spec_all |> ex2fsym0 "Lw" ["η","H"]
+                   |> gen_all
+                   |> store_as "Lw_def";
+
+
+val Rw_def = Rw_ex |> spec_all |> ex2fsym0 "Rw" ["H","η"]
+                   |> gen_all
+                   |> store_as "Rw_def";
+
+val Ed_Po_Pb = prove_store("Ed_Po_Pb",
+e0
+(cheat)
+(form_goal “∀X Y f:X->Y Z g:X->Z P p:Y->P q:Z->P. isPo(f,g,p,q) ⇒
+ ∀A. isPb(Ed(f,A),Ed(g,A),Ed(p,A),Ed(q,A))”));
+
+val Ed_ab_Pb0 = prove_store("Ed_ab_Pb0",
+e0
+(strip_tac >> irule Ed_Po_Pb >> rw[CC4_2])
+(form_goal “∀A.isPb(Ed(1f,A),Ed(0f,A),Ed(α,A),Ed(β,A))”));
+
+
+
+
+
+val Pba_def = 
+    isPb_expand |> iffLR 
+                |> strip_all_and_imp
+                |> conjE2
+                |> strip_all_and_imp
+                |> ex2fsym0 
+                "Pba" ["f","g","p","q","u","v"]
+                |> disch 
+                “f:X->H o u:A->X = g:Y->H o v”
+                |> qgenl [‘A’,‘u’,‘v’]
+                |> disch_all
+                |> qgenl
+                [‘H’,‘X’,‘f’,‘Y’,‘g’,‘P’,‘p’,‘q’]
+
+
+val Ed_ab_Pb = prove_store("Ed_ab_Pb",
+e0
+(cheat)
+(form_goal “∀A.isPb(Er1(A) o Ed(1f,A),Er1(A) o Ed(0f,A),Ed(α,A),Ed(β,A))”));
+
+(*cod η = dom ε *)
+val vo_ex = prove_store("vo_ex",
+e0
+(cheat)
+(form_goal
+ “∀A B η:A -> Exp(2,B) ε:A->Exp(2,B). 
+  ∃μ:A -> Exp(2,B). 
+  μ = Ed(γ, B) o Pba(Er1(B) o Ed(1f,B),Er1(B) o Ed(0f,B),Ed(α,B),Ed(β,B),η,ε)
+”));
+
+
+val vo_def = vo_ex |> spec_all |> ex2fsym0 "vo" ["ε","η"]
+                   |> qgen ‘ε’ |> gen_all |> store_as "vo_def" 
+
+val Adj_def = define_pred “
+∀A X L:X->A R:A->X η ε. Adj(L:X->A, R:A->X, η:X-> Exp(2,X), ε:A -> Exp(2,A)) ⇔ 
+ vo(Lw(ε,L),Rw(L,η))  = ID(L) ∧ 
+ vo(Rw(R,ε),Lw(η,R))  = ID(R)”
+
+
 val CC6 = store_ax("CC6",
 “?A f:2->A. iso(f) & ~isid(f)”); 
 
