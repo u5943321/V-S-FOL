@@ -1724,9 +1724,13 @@ val iso_def = define_pred
  ?g:2->A. dom(g) = cod(f) & dom(f) = cod(g) &
  g @ f = dom(f) o To1(2) & f @ g = cod(f) o To1(2) ”
 
+
+(*
 CC5. If R(f, g) defines a functorial relation from arrows of A to those of B, then
  there is a functor F: A -+ B s
 
+
+*)
 (*
 usual functor:
 
@@ -2151,7 +2155,7 @@ val UFrom_def = define_pred
 
 val Thm13 = prove_store("Thm13",
 e0
-()
+(cheat)
 (form_goal
  “∀X A F:X->A. 
   (∀x:1->X f:2->A. U(x,f) ⇒ UFrom(F,cod(f),x,f)) ∧
@@ -2192,18 +2196,18 @@ e0
 (form_goal
  “!X Y f:X->Y. Tp0(Tp1(f)) = f”));
 
-val Tp1_eq_eq = prove_store("Tp1_eq_eq",
-e0
-(rw[GSYM Tp1_def,Tp_eq,o_Cr1_eq] )
-(form_goal “∀A B f:A->B g. Tp1(f) = Tp1(g) ⇔ f = g”));
-
-
 val Tp_eq = prove_store("Tp_eq",
 e0
 (rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
  >-- (once_rw[GSYM Ev_of_Tp] >> arw[]) >> arw[])
 (form_goal
  “!A B X f:A * X ->B g:A * X ->B.Tp(f) = Tp(g) <=> f = g”));
+
+val Tp1_eq_eq = prove_store("Tp1_eq_eq",
+e0
+(rw[GSYM Tp1_def,Tp_eq,o_Cr1_eq] )
+(form_goal “∀A B f:A->B g. Tp1(f) = Tp1(g) ⇔ f = g”));
+
 
 
 val id_cod_id = prove_store("id_cod_id",
@@ -2301,6 +2305,125 @@ val Thm17 = prove_store("Thm17",
 e0
 cheat
 (form_goal “?Cl t:1->Cl. FSCC(t)”));
+
+val _ = new_fun "op" (cat_sort,[("A",cat_sort)])
+
+val _ = new_fun "opf" (fun_sort (rastt "op(A)") (rastt "op(B)"),
+                      [("f",fun_sort (rastt "A") (rastt "B"))])
+
+val _ = EqSorts := "cat" :: (!EqSorts)
+
+val isgen_op2 = prove_store("isgen_op2",
+e0
+cheat
+(form_goal “isgen(op(2))”));
+
+val op2_2_iso = prove_store("op2_2_iso",
+e0
+(cheat)
+(form_goal “∃i:2->op(2) j:op(2) ->2. i o j = Id(op(2)) ∧
+ j o i = Id(2)”));
+
+val As2_Sa2_def = op2_2_iso |> ex2fsym0 "Sa2" []
+                            |> ex2fsym0 "As2" []
+
+(**)
+
+val op1_1_iso = prove_store("op1_1_iso",
+e0
+(cheat)
+(form_goal “∃i:1->op(1) j:op(1) -> 1. i o j = Id(op(1)) ∧
+ j o i = Id(1)”));
+
+
+val As1_Sa1_def = op1_1_iso |> ex2fsym0 "Sa1" []
+                            |> ex2fsym0 "As1" []
+
+
+(*If have equality on categories,Dom(f:A->B) = A,
+ clause 3 and 4 says:
+
+
+Dom(opf(f)) = op(Dom(f)) ∧
+Cod(opf(f)) = op(Cod(f))
+
+but now there is no equality on categories, so it is already given in sort
+
+opf(f:A->B):op(A) -> op(B)
+*)
+
+val CC7 = store_ax("CC7",
+“(∀A. opf(Id(A)) = Id(op(A))) ∧ 
+ (∀A B f:A ->B C g:B->C. opf(g o f) = opf(g) o opf(f)) ∧
+ ∀A B f:A->B. op”
+
+val _ = add_parse (int_of "%");
+
+val _ = new_fun "%" 
+(fun_sort (rastt "A") (rastt "B"),
+[("A0",cat_sort),("B0",cat_sort),("A",cat_sort),("B",cat_sort),
+ ("f",fun_sort (rastt "A0") (rastt "B0"))])
+
+(*“%(op(1),op(2),1,2,opf(0f)) = 1f”*)
+
+
+
+val _ = new_fun "ce" (fun_sort (mk_cat "A") (mk_cat "B"),
+                       [("f",fun_sort (rastt "op(op(A))")
+                                      (rastt "op(op(B))"))])
+
+
+val Lc_ex = prove_store("Lc_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘%(A,B,A',B,f)’ >> rw[])
+(form_goal
+ “∀A B A' f:A->B. ∃Lc. Lc = %(A,B,A',B,f)”));
+
+
+val Lc_def = Lc_ex |> spec_all |> ex2fsym0 "Lc" ["A'","f"]
+                   |> gen_all |> store_as "Lc_def";
+
+val ce_def = store_ax ("ce_def",
+“∀A B f. ce(f:op(op(A)) -> op(op(B))) =
+ %(op(op(A)),op(op(B)),A,B,f)”)
+
+
+val Lce_def = store_ax ("Lce_def",
+“∀A B A' f. Lce(f:A -> B) =
+ %(A,A',B,B,f)”)
+
+val op_invol = store_ax("op_invol",
+“∀A B f:A->B. coe(opf(opf(f))) = f”);
+
+
+
+val CC8 = store_ax("CC8",“As2 o opf(0f) o Sa1 = 1f”);
+
+
+val Thm18 = store_ax("Thm18",
+e0
+(rpt strip_tac >>
+ )
+(form_goal “∀A B. 
+ (∀f:2->A. ∃!g:2->B. R(f,g)) ∧
+ (∀f:2->A g:2->B. R(f,g) ⇒ 
+  R(id(dom(f)),id(cod(g))) ∧ R(id(cod(f)),id(dom(g)))) ∧
+ (∀f:2->A g:2->A h: 2->B. cpsb(g,f) ⇒
+  R(g @ f, h) ⇒ ∀f1 g1. R(f,f1) ∧ R(g,g1) ⇒ h = f1 @ g1) ⇒
+ ∃cf:op(A)->B. ∀a:2->op(A) b:2->B. R(a,b) ⇔ cf o a = b”));
+
+
+
+
+
+(*erase op on corner*)
+
+val _ = new_fun "Eop" (fun_sort (rastt "A") (rastt "B"),
+                       [("f",fun_sort (rastt "op(A)") (rastt "op(B)"))])
+
+
+val asA_ex “2 = op(2)”
+
 
 val DC_def = define_pred “!A. DC(A) <=> !f:2->A. isid(f)”
 
