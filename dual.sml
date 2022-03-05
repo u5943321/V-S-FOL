@@ -18,6 +18,23 @@ val _ = new_fun "%" (fun_sort (mk_cat "A") (mk_cat "B"),
 
 val _ = add_parse (int_of "%");
 
+
+opf (f: A -> B)
+
+f:A^op -> B^op
+
+f'':A^op^op -> B^ op^op
+
+A^op^op -> B
+
+
+f^op^op = f
+
+
+Makkai
+
+
+
 val opf_opf_eq = store_ax
 ("opf_opf_eq",“!A B. (∀f:A->B. %(opf(opf(f))) = f) ∧
                      (∀f:op(A) -> op(B). opf(%(opf(f))) = f)”)
@@ -183,6 +200,8 @@ val _ = new_pred "isopf"
 
 (*isop just says there exists a correspondence of 
 object and arrows between these categories. Note that does not *)
+
+(*A^op ^op = A, can use iff *)
 val op_op_refl = store_ax("op_op_refl",
 “∀A Aop. isop(A,Aop) ⇒ isop(Aop,A)”);
 
@@ -210,6 +229,25 @@ val opf_def = opf_uex |> spec_all |> undisch
                       |> disch_all
                       |> gen_all
                       |> store_as "opf_def";
+
+
+(*
+
+A^op^op = A ∧ F^op^op
+
+f: A-> B g:A->B
+
+opf(f,A',B') = opf(g,A',B')
+
+axiom
+
+
+isopf(f:A->B,f':A'->B') ⇒ isop(A,A') ∧ isop(B,B')
+
+
+ isop(A,A') ∧ isop(B,B') ⇒ ∃!
+
+*)
 
 val opf_property = opf_def |> strip_all_and_imp 
                      |> conjE1
@@ -461,3 +499,75 @@ cheat >>
  ∀A'. isop(A,A') ⇒ 
  cpsb(opf(f,2,A'),opf(g,2,A')) ∧
  opf(f,2,A') @ opf(g,2,A') = opf(g @ f,2,A')”));
+
+
+val opf_op_ex = prove_store
+
+(*for all f:A->B exists f':A'->B' such that f' is op to f and A' is op to A and B' is op to B*)
+
+val opf1_eq = store_ax("opf1_eq",
+“∀A B f:A->B g:A->B. f = g ⇒
+ ∀A' B'. isop(A,A') ∧ isop(B,B') ⇒ 
+ opf(f,A',B') = opf(g,A',B')”);
+
+
+val opf_opf_eqn = prove_store("opf_opf_eqn",
+e0
+(rpt strip_tac >> 
+ flip_tac >> irule is_opf >> drule op_op_refl >>
+ rev_drule op_op_refl >> arw[] >>
+ irule opf_opf_refl >> irule opf_property >> arw[])
+(form_goal “∀A B A' B'. isop(A,A') ∧ isop(B,B') ⇒ 
+ ∀f:A->B. opf(opf(f, A', B'), A, B) = f”));
+
+rpt strip_tac >> irule Thm3_2 >> rpt strip_tac
+>-- cheat >>
+rw[isgen_def] >> rpt strip_tac >>
+qspecl_then [‘A’] strip_assume_tac op_cat_ex >> 
+qspecl_then [‘B’] (x_choose_then "B'" strip_assume_tac) 
+op_cat_ex >>
+qby_tac ‘~(opf(f1,A',B') = opf(f2,A',B'))’ >-- 
+(ccontra_tac >>
+ qsuff_tac ‘opf(opf(f1,A',B'),A,B) = f1 ∧
+            opf(opf(f2,A',B'),A,B) = f2’
+ >-- (drule opf1_eq >>
+      first_x_assum (qspecl_then [‘A’,‘B’] assume_tac) >>
+      drule op_op_refl >> 
+      qby_tac ‘isop(A', A)’ >-- 
+      (irule op_op_refl >> arw[]) >>
+      strip_tac >> fs[]) >>
+ strip_tac >> irule opf_opf_eqn >> arw[]) >>
+drule CC2_2 >> pop_assum strip_assume_tac >>
+qexists_tac ‘opf(a,op2,A)’ >>
+qby_tac ‘opf(opf(a, op2, A),2,A') = a’
+>-- irule opf_opf_eqn >> arw[] >> irule op_op_refl >> arw[]>>
+    qby_tac ‘~(opf(f1, A', B') o opf(opf(a, op2, A), 2, A') =
+              opf(f2, A', B') o opf(opf(a, op2, A), 2, A'))’      >-- arw[] >>
+    qby_tac ‘opf(f1, A', B') o opf(opf(a, op2, A), 2, A') = 
+             opf(f1 o opf(a, op2, A),2,B')’
+    >-- (irule opf_opf_o >> arw[] >> 
+        irule op_op_refl >> arw[]) >>
+    qby_tac ‘opf(f2, A', B') o opf(opf(a, op2, A), 2, A') = 
+             opf(f2 o opf(a, op2, A),2,B')’
+    >-- (irule opf_opf_o >> arw[] >> 
+        irule op_op_refl >> arw[]) >>
+    fs[] >> 
+    ccontra_tac >> drule opf1_eq >>
+    first_x_assum (qspecl_then [‘2’,‘B'’] assume_tac) >>
+    rfs[] >> rev_drule op_op_refl >> fs[]
+        
+
+
+qexists_tac ‘opf(a,op2,A')’
+“∀op2. isop(2,op2) ⇒ areIso(op2,2)”
+
+
+
+
+ _^op preserves identity functors, domains, codomains and composites of
+ functors, and, for all A and F
+
+
+F:A -> B
+F^op: A^op -> B^op
+
