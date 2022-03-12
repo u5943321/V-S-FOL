@@ -283,6 +283,79 @@ val isEq_def = store_ax("isEq_def",
 
 val isEq_ex = store_ax("isEq_ex",“!A B f:A->B g:A->B.?E e:E->A.isEq(f,g,e)”)
 
+
+(*
+
+val Eo_Ea_def = isEq_ex |> spec_all |> ex2fsym0 "Eo" ["f","g"]
+|> ex2fsym0 "Ea" ["f","g"] |> gen_all         
+
+
+val Ea_eqn = Eo_Ea_def |> rewr_rule [isEq_def] |> spec_all |> conjE1
+|>   gen_all
+
+val Eia_def = Eo_Ea_def |> rewr_rule [isEq_def] |> spec_all |> conjE2
+|> spec_all |> undisch |> uex_expand |> ex2fsym0 "Eia" ["f","g","a"]
+|> disch_all |> gen_all
+
+val Eia_eqn = Eia_def |> spec_all |> undisch |> conjE1 |> disch_all 
+|> gen_all
+
+
+
+(*
+
+EQ_fsym "Ea" [assume “f1:A->B = f2”,assume “g1:A->B = g2”]
+ 
+ BA(g2 : ar(A, B))(g1 : ar(A, B))(f2 : ar(A, B))(f1 : ar(A, B))
+   1.f1 = f2
+   2.g1 = g2
+   3.Ea(f1, g1) o Eia(f1, g1, Ea(f2, g2)) = Ea(f2, g2)
+   ----------------------------------------------------------------------
+   f2 o Ea(f1, g1) = g2 o Ea(f1, g1)
+
+*)
+
+
+val Eo_Ea_CONG = prove_store("Eo_Ea_CONG",
+e0
+(rpt strip_tac >>
+ assume_tac Eia_def >>
+ qsuff_tac
+ ‘Eia(f1, g1, Ea(f2, g2)) o Eia(f2, g2, Ea(f1, g1)) = 
+ Eia(f1,g1,Ea(f1,g1)) & 
+ id(Eo(f1,g1))  = 
+ Eia(f1,g1,Ea(f1,g1))’
+ >-- (strip_tac >> arw[]) >>
+ strip_tac >--
+ (first_x_assum (qsspecl_then [‘f1’,‘g1’,‘Ea(f1,g1)’] assume_tac) >>
+ pop_assum mp_tac >> 
+ once_rw[Ea_eqn] >> rw[] >> strip_tac >>
+ first_x_assum irule >> 
+ rw[GSYM o_assoc] >>
+ qby_tac ‘(Ea(f1, g1) o Eia(f1, g1, Ea(f2, g2))) = Ea(f2, g2)’
+ >-- (irule $ GSYM Eia_eqn >> pop_assum (K all_tac) >>
+     arw[Ea_eqn]) >>
+ qpick_x_assum ‘Ea(f1, g1) = Ea(f1, g1) o Eia(f1, g1, Ea(f1, g1))’
+ (K all_tac) >> arw[] >>
+ irule Eia_eqn >> 
+ qsuff_tac
+ ‘f1 o Ea(f1, g1) = g1 o Ea(f1, g1)’
+ >-- arw[] >> rw[Ea_eqn]) >>
+ first_x_assum (qsspecl_then [‘f1’,‘g1’,‘Ea(f1,g1)’] assume_tac) >>
+ pop_assum mp_tac >> 
+ once_rw[Ea_eqn] >> rw[] >> strip_tac >>
+ first_x_assum irule >> 
+ rw[idR])
+(form_goal
+ “!A B f1:A->B g1 f2 g2. f1 = f2 & g1 = g2 ==>
+  Eia(f1,g1,Ea(f2,g2)) o Eia(f2,g2,Ea(f1,g1)) = id(Eo(f1,g1)) ”));
+
+
+rastt "Eia(i1(1,1),i2(1,1),id(1))"
+
+
+*)
+
 val Eqa_def = 
     isEq_def |> iffLR 
              |> spec_all |> undisch |> conjE2 
