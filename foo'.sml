@@ -225,3 +225,122 @@ fun mk_ind cond =
         val gened = disch_tomp |> allI (sname,ssort)
     in gened
     end
+
+
+
+
+
+
+
+val (monotone,rules0,cond) = (isLf_monotone,isL_rules0,isLs_cond)
+
+val (monotone,rules0,cond) = (FIf_monotone,FI_rules0,FIs_cond)
+
+val (monotone,rules0,cond) = (Cdf_monotone,Cd_rules0,Cds_cond)
+
+val (monotone,rules0,cond) = (inNf_monotone,inN_rules0,inNs_cond)
+
+fun mk_cases monotone rules0 cond = 
+    let val fLFP = rules0 |> concl |> #2 o dest_pred |> hd
+        val [fnterm,LFP] = fLFP |> #3 o dest_fun
+                           handle _ => raise 
+                                    simple_fail "mk_cases.cannot identify LFP"
+        val ((mname,msort),b) = cond |> concl |> dest_forall
+        val misin = msort |> dest_sort |> #2 |> hd
+        val (lb,rb) = b |> dest_dimp
+        val ((sname,ssort),lb0) = lb |> dest_forall
+        val toasm_conseq = mk_pred "IN" [mk_var (mname,msort),fLFP]
+        val toasm_ant = mk_pred "SS" [mk_App fnterm fLFP,fLFP]
+        val orig = assume (mk_imp toasm_ant toasm_conseq)
+        val mp_ant = orig |> C mp (assume toasm_ant)
+        val spec_monotone = monotone |> specl [fLFP,LFP] |> undisch
+        val by_monotone = mp_ant |> prove_hyp spec_monotone
+        val by_rules0 = by_monotone |> prove_hyp rules0
+        val spec_asm_lb = lb |> assume |> specl [fLFP] 
+        val by_above = by_rules0 |> prove_hyp spec_asm_lb
+        val spec_cond = cond |> iffRL |> allE (mk_var (mname,msort)) |> undisch
+        val by_cond = by_above |> prove_hyp spec_cond |> disch rb
+                               |> allI (mname,msort)
+        val by_SS_def = by_cond |> rewr_rule[GSYM SS_def]
+        val conj = by_SS_def |> conjI rules0
+        val spec_SS_eq = SS_SS_eq |> specl [misin,fLFP,LFP]
+        val mp_above = conj |> mp spec_SS_eq
+    in mp_above
+    end
+
+val isL_rules0 = mk_rules isLf_monotone isLs_SS isLs_cond
+
+assume “SS(App(isLf(X),App(isLf(X),isLs(X))),App(isLf(X),isLs(X))) ⇒ 
+        IN(a,App(isLf(X),isLs(X)))”
+|> C mp (assume “SS(App(isLf(X),App(isLf(X),isLs(X))),App(isLf(X),isLs(X)))”)
+|> prove_hyp 
+   (isLf_monotone |> qspecl [‘App(isLf(X),isLs(X))’,‘isLs(X)’]
+                  |> undisch)
+|> prove_hyp isL_rules0
+|> prove_hyp (assume “∀xs. SS(App(isLf(X),xs),xs) ⇒ IN(a,xs)”
+                     |> qspecl [‘App(isLf(X),isLs(X))’])
+|> prove_hyp ( (iffRL isLs_cond) |> allE (rastt "a:mem(Pow(N * X))")
+                                 |> undisch)
+|> disch “IN(a,isLs(X))”
+|> allI ("a",mem_sort (rastt "Pow(N * X)")) 
+|> rewr_rule [GSYM SS_def] 
+|> conjI isL_rules0 
+|> mp (SS_SS_eq |> qspecl [‘Pow(N * X)’,‘App(isLf(X), isLs(X))’,‘isLs(X)’])
+
+
+val Cd_rules0 = mk_rules Cdf_monotone Cds_SS Cds_cond
+
+assume “SS(App(Cdf(X),App(Cdf(X),Cds(X))),App(Cdf(X),Cds(X))) ⇒ 
+        IN(a,App(Cdf(X),Cds(X)))”
+|> C mp (assume “SS(App(Cdf(X),App(Cdf(X),Cds(X))),App(Cdf(X),Cds(X)))”)
+|> prove_hyp 
+   (Cdf_monotone |> qspecl [‘App(Cdf(X),Cds(X))’,‘Cds(X)’]
+                  |> undisch)
+|> prove_hyp Cd_rules0
+|> prove_hyp (assume “∀xs. SS(App(Cdf(X),xs),xs) ⇒ IN(a,xs)”
+                     |> qspecl [‘App(Cdf(X),Cds(X))’])
+|> prove_hyp ( (iffRL Cds_cond) |> allE (rastt "a:mem(Pow(X) * N)")
+                                 |> undisch)
+|> disch “IN(a,Cds(X))”
+|> allI ("a",mem_sort (rastt "Pow(X) * N"))
+|> rewr_rule [GSYM SS_def]
+|> conjI Cd_rules0
+|> mp (SS_SS_eq |> qspecl [‘Pow(X) * N’,‘App(Cdf(X), Cds(X))’,‘Cds(X)’])
+
+
+val FI_rules0 = mk_rules FIf_monotone FIs_SS FIs_cond
+
+assume “SS(App(FIf(X),App(FIf(X),FIs(X))),App(FIf(X),FIs(X))) ⇒ 
+        IN(a,App(FIf(X),FIs(X)))”
+|> C mp (assume “SS(App(FIf(X),App(FIf(X),FIs(X))),App(FIf(X),FIs(X)))”)
+|> prove_hyp 
+   (FIf_monotone |> qspecl [‘App(FIf(X),FIs(X))’,‘FIs(X)’]
+                  |> undisch)
+|> prove_hyp FI_rules0
+|> prove_hyp (assume “∀xs. SS(App(FIf(X),xs),xs) ⇒ IN(a,xs)”
+                     |> qspecl [‘App(FIf(X),FIs(X))’])
+|> prove_hyp ( (iffRL FIs_cond) |> allE (rastt "a:mem(Pow(X))")
+                                 |> undisch)
+|> disch “IN(a,FIs(X))”
+|> allI ("a",mem_sort (rastt "Pow(X)"))
+|> rewr_rule [GSYM SS_def]
+|> conjI FI_rules0
+|> mp (SS_SS_eq |> qspecl [‘Pow(X)’,‘App(FIf(X), FIs(X))’,‘FIs(X)’])
+
+
+assume “SS(App(inNf,App(inNf,inNs)),App(inNf,inNs)) ⇒ 
+        IN(a,App(inNf,inNs))”
+|> C mp (assume “SS(App(inNf,App(inNf,inNs)),App(inNf,inNs))”)
+|> prove_hyp 
+   (inNf_monotone |> qspecl [‘App(inNf,inNs)’,‘inNs’]
+                  |> undisch)
+|> prove_hyp inN_rules0
+|> prove_hyp (assume “∀X. SS(App(inNf,X),X) ⇒ IN(a,X)”
+                     |> qspecl [‘App(inNf,inNs)’])
+|> prove_hyp ( (iffRL inNs_cond) |> allE (rastt "a:mem(N0)")
+                                 |> undisch)
+|> disch “IN(a,inNs)”
+|> allI ("a",mem_sort (rastt "N0"))
+|> rewr_rule [GSYM SS_def]
+|> conjI inN_rules0
+|> mp (SS_SS_eq |> qspecl [‘N0’,‘App(inNf, inNs)’,‘inNs’])
