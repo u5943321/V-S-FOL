@@ -203,97 +203,25 @@ fun mk_rules monotone SS cond =
     in wrap_SS
     end
 
-assume “SS(App(isLf(X),isLs(X)),xs)”
-       |> rewr_rule[SS_def]
-       |> strip_all_and_imp
-       |> prove_hyp
-          (SS_Trans |> qspecl [‘Pow(N * X)’,‘App(isLf(X),isLs(X))’,
-                                ‘App(isLf(X),xs)’]
-                    |> undisch
-                    |> qspecl [‘xs:mem(Pow(Pow(N * X)))’]
-                    |> undisch)
-       |> prove_hyp
-          (isLf_monotone 
-               |> qspecl [‘isLs(X)’,‘xs:mem(Pow(Pow(N * X)))’]
-               |> undisch)
-       |> prove_hyp
-          (isLs_SS |> qspecl [‘xs:mem(Pow(Pow(N * X)))’]
-                   |> undisch)
-       |> disch “SS(App(isLf(X), xs), xs)”
-       |> allI ("xs",mem_sort (rastt "Pow(Pow(N * X))"))
-       |> rewr_rule[isLs_cond]
-       |> disch “IN(a, App(isLf(X), isLs(X)))”
-       |> allI ("a",mem_sort (rastt "Pow(N * X)"))
-       |> rewr_rule[GSYM SS_def]
+val cond = inNs_cond;
+val cond = FIs_cond;
+val cond = Cds_cond;
+val cond = isLs_cond;
 
-
-
-assume “SS(App(Cdf(X),Cds(X)),xs)”
-       |> rewr_rule[SS_def]
-       |> strip_all_and_imp
-       |> prove_hyp
-          (SS_Trans |> qspecl [‘Pow(X) * N’,‘App(Cdf(X),Cds(X))’,
-                                ‘App(Cdf(X),xs)’]
-                    |> undisch
-                    |> qspecl [‘xs:mem(Pow(Pow(X) * N))’]
-                    |> undisch)
-       |> prove_hyp
-          (Cdf_monotone 
-               |> qspecl [‘Cds(X)’,‘xs:mem(Pow(Pow(X) * N))’]
-               |> undisch)
-       |> prove_hyp
-          (Cds_SS |> qspecl [‘xs:mem(Pow(Pow(X) * N))’]
-                   |> undisch)
-       |> disch “SS(App(Cdf(X), xs), xs)”
-       |> allI ("xs",mem_sort (rastt "Pow(Pow(X) * N)"))
-       |> rewr_rule[Cds_cond]
-       |> disch “IN(a, App(Cdf(X), Cds(X)))”
-       |> allI ("a",mem_sort (rastt "Pow(X) * N"))
-       |> rewr_rule[GSYM SS_def]
-
-assume “SS(App(FIf(X),FIs(X)),xs)”
-       |> rewr_rule[SS_def]
-       |> strip_all_and_imp
-       |> prove_hyp
-          (SS_Trans |> qspecl [‘Pow(X)’,‘App(FIf(X),FIs(X))’,
-                                ‘App(FIf(X),xs)’]
-                    |> undisch
-                    |> qspecl [‘xs:mem(Pow(Pow(X)))’]
-                    |> undisch)
-       |> prove_hyp
-          (FIf_monotone 
-               |> qspecl [‘FIs(X)’,‘xs:mem(Pow(Pow(X)))’]
-               |> undisch)
-       |> prove_hyp
-          (FIs_SS |> qspecl [‘xs:mem(Pow(Pow(X)))’]
-                   |> undisch)
-       |> disch “SS(App(FIf(X), xs), xs)”
-       |> allI ("xs",mem_sort (rastt "Pow(Pow(X))"))
-       |> rewr_rule[FIs_cond]
-       |> disch “IN(a, App(FIf(X), FIs(X)))”
-       |> allI ("a",mem_sort (rastt "Pow(X)"))
-       |> rewr_rule[GSYM SS_def]
-
-
-assume “SS(App(inNf,inNs),X)”
-       |> rewr_rule[SS_def]
-       |> strip_all_and_imp
-       |> prove_hyp
-          (SS_Trans |> qspecl [‘N0’,‘App(inNf,inNs)’,
-                                ‘App(inNf,X)’]
-                    |> undisch
-                    |> qspecl [‘X:mem(Pow(N0))’]
-                    |> undisch)
-       |> prove_hyp
-          (inNf_monotone 
-               |> qspecl [‘inNs’,‘X:mem(Pow(N0))’]
-               |> undisch)
-       |> prove_hyp
-          (inNs_SS |> qspecl [‘X:mem(Pow(N0))’]
-                   |> undisch)
-       |> disch “SS(App(inNf, X), X)”
-       |> allI ("X",mem_sort (rastt "Pow(N0)"))
-       |> rewr_rule[inNs_cond]
-       |> disch “IN(a, App(inNf, inNs))”
-       |> allI ("a",mem_sort (rastt "N0"))
-       |> rewr_rule[GSYM SS_def]
+fun mk_ind cond = 
+    let val ((memn,mems),b) = cond |> concl |> dest_forall
+        val toassume0 = b |> #1 o dest_dimp
+        val ((sname,ssort),toassume) = dest_forall toassume0
+        val tomp = toassume |> #1 o dest_imp
+        val orig = assume toassume
+        val mp_tomp = orig |> C mp (assume tomp)
+        val spec_toassume0 = toassume0 |> assume |> specl [mk_var (sname,ssort)]
+        val by_spec_above = mp_tomp |> prove_hyp spec_toassume0
+                                    |> disch toassume0
+                                    |> allI (memn,mems)
+        val by_cond = by_spec_above |> rewr_rule[cond]
+        val by_SS_def = by_cond |> rewr_rule[GSYM SS_def]
+        val disch_tomp = by_SS_def |> disch tomp
+        val gened = disch_tomp |> allI (sname,ssort)
+    in gened
+    end
