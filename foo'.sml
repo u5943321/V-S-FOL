@@ -524,6 +524,45 @@ fun imp_induce ip fm =
             end
     end
 
+val fm0 = 
+“SS(App(isLf(X),s1), App(isLf(X),s2))”
+|> basic_fconv (no_conv) (first_fconv [rewr_fconv(spec_all SS_def),rewr_fconv (spec_all isLf_def)])
+|> concl |> #2 o dest_dimp |> #2 o dest_forall
+
+val ip0 = “SS(s1:mem(Pow(Pow(N * X))),s2)” |> assume
+           |> rewr_rule[SS_def]
+
+val fdef = inNf_def;
+val fdef = FIf_def;
+val fdef = Cdf_def;
+val fdef = isLf_def;
+
+(*maybe have something like dest_IN which dests a particular pred*)
+fun mk_monotone fdef = 
+    let val (pvar as (pname,psort),b) = fdef |> concl |> dest_forall
+        val (mvar as (mname,msort),b1) = b |> dest_forall
+        val (b1l,b1r) = dest_dimp b1 
+        val fnterm = b1l |> dest_pred |> #2 |> el 2 |> dest_fun |> #3 |> hd
+        val avoids = cont fdef
+        val gens1 = pvariantt avoids (mk_var("s1",psort))
+        val gens2 = pvariantt avoids (mk_var("s2",psort))
+        val goalant = mk_pred "SS" [gens1,gens2] 
+        val goalconsq = mk_pred "SS" [mk_App fnterm gens1,mk_App fnterm gens2]
+        val goalant_ipth = goalant |> basic_fconv no_conv 
+                                   (rewr_fconv (spec_all SS_def))
+                                   |> iffLR |> undisch
+        val goalconsq' = goalconsq |> basic_fconv no_conv 
+                                      (first_fconv [rewr_fconv(spec_all SS_def),
+                                                 rewr_fconv (spec_all fdef)])
+        val (var0,toinduce)= goalconsq' |> concl |> #2 o dest_dimp |> dest_forall
+        val imp_induce_th = imp_induce goalant_ipth toinduce
+        val th1 = imp_induce_th |> allI var0 |> dimp_mp_r2l goalconsq'
+                                |> disch goalant 
+                                |> allI (dest_var gens2)
+                                |> allI (dest_var gens1)
+    in th1
+    end
+
 (*
 fun imp_induce ip fm = 
     let val (ante0,conseq0) = dest_imp (concl ip)
