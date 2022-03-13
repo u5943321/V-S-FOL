@@ -226,8 +226,102 @@ fun mk_ind cond =
     in gened
     end
 
+val fdef = inNf_def
+val fdef = FIf_def
+val fdef = Cdf_def
+val fdef = isLf_def
+
+fun mk_prim fdef = 
+    let val ((pname,psort),b) = fdef |> concl |> dest_forall
+        val ((mname,msort),b1) = b |> dest_forall
+        val pisin = psort|> dest_sort |> #2 |> hd
+        val pvar = mk_var (pname,psort)
+        val fvar0 = mk_fvar "P" [mk_var (pname,psort)]
+        val (lb1,rb1) = b1 |> dest_dimp
+        val fnterm = lb1 |> dest_pred |> #2 |> el 2 |> dest_fun |> #3 |> hd
+        val fvar1 = mk_pred "SS" [mk_App fnterm pvar,pvar]
+        val defname = fnterm |> dest_fun |> #1 |> explode |> rev |> tl 
+                             |> rev |> implode
+        val spec_IN_ex = IN_def_P_ex |> allE pisin |> GSYM
+                                     |> fVar_sInst_th fvar0 fvar1
+        val skinputs = cont spec_IN_ex |> HOLset.listItems
+        val sk = spec_IN_ex |> ex2fsym0 (defname ^ "'s") (List.map #1 skinputs)
+    in sk
+    end
 
 
+val primtm = rastt "inN's";
+val primtm = rastt "FI's(X)";
+val primtm = rastt "Cd's(X)";
+val primtm = rastt "isL's(X)";
+
+fun mk_LFP primtm = 
+    let val bigintertm = mk_fun "BIGINTER" [primtm]
+        val defname = primtm |> dest_fun |> #1 |> explode |> rev |> tl |> tl
+                             |> rev |> implode
+        val st = sort_of bigintertm
+        val LFPname = defname^"s"
+        val templ = mk_eq (mk_var(defname^"s",st)) bigintertm
+        val exth = bigintertm |> refl 
+                              |> existsI (defname^"s",st) bigintertm templ
+        val skinputs = cont exth |> HOLset.listItems
+        val LFP_def = exth |> ex2fsym0 LFPname (List.map #1 skinputs)
+    in LFP_def
+    end
+
+val (LFPdef,primdef) = (inNs_def,inN's_def);
+val (LFPdef,primdef) = (FIs_def,FI's_def);
+val (LFPdef,primdef) = (Cds_def,Cd's_def);
+val (LFPdef,primdef) = (isLs_def,isL's_def);
+
+fun mk_cond LFPdef primdef = 
+   let val avoids = HOLset.union(cont LFPdef,cont primdef)
+       val (LFP,bi) = LFPdef |> concl |> dest_eq
+       val pofset = bi |> sort_of
+                      |> #2 o dest_sort |> hd |> #3 o dest_fun |> hd
+       val memvar = pvariantt avoids (mk_var ("a",mem_sort pofset))
+       val startwith = mk_pred "IN" [memvar,LFP]
+       val by_LFP = startwith |> basic_fconv (rewr_conv LFPdef)
+                              (rewr_fconv (spec_all IN_BIGINTER))
+       val by_primdef = by_LFP |> rewr_rule[primdef] |> GSYM
+       val gened = by_primdef |> allI (dest_var memvar)
+   in gened
+   end
+
+val (LFPdef,primdef) = (inNs_def,inN's_def);
+val (LFPdef,primdef) = (FIs_def,FI's_def);
+val (LFPdef,primdef) = (Cds_def,Cd's_def);
+val (LFPdef,primdef) = (isLs_def,isL's_def);
+
+
+fun mk_SS LFPdef primdef = 
+    let val ((pname,psort),b) = primdef |> concl |> dest_forall
+        val s0 = psort |> dest_sort |> #2 |> hd |> dest_fun |> #3 |> hd
+        val (pl,pr) = b |> dest_dimp
+        val (LFP,bi) = LFPdef |> concl |> dest_eq
+        val pvar = mk_var (pname,psort)
+        val goal_conc = mk_pred "SS" [LFP,pvar]
+        val goal_ant = pr
+        val SS_bi = mk_pred "SS" [bi,pvar]
+        val by_LFP = goal_conc |> basic_fconv (rewr_conv LFPdef) no_fconv
+        val expand_SS = iff_trans by_LFP 
+                                  (SS_bi |> basic_fconv 
+                                   no_conv (rewr_fconv (spec_all SS_def))) 
+        val by_prim = expand_SS |> rewr_rule[IN_BIGINTER,primdef]
+                                |> iffRL |> undisch
+        val avoids = HOLset.union(cont LFPdef,cont primdef)
+        val genvar = pvariantt avoids (mk_var("a0",mem_sort s0))
+        val lemmaf0 = mk_imp goal_ant (mk_pred "IN" [genvar,pvar]) 
+        val lemmaf = mk_forall pname psort lemmaf0
+        val lemma = lemmaf |> assume |> specl [pvar] 
+                           |> C mp (assume goal_ant)
+                           |> disch lemmaf
+                           |> allI (dest_var genvar)
+        val provedhyp = by_prim |> prove_hyp lemma
+        val disch_gen = provedhyp |> disch goal_ant |> allI (pname,psort)
+    in
+        disch_gen
+    end
 
 
 
@@ -268,79 +362,5 @@ fun mk_cases monotone rules0 cond =
     in mp_above
     end
 
-val isL_rules0 = mk_rules isLf_monotone isLs_SS isLs_cond
-
-assume “SS(App(isLf(X),App(isLf(X),isLs(X))),App(isLf(X),isLs(X))) ⇒ 
-        IN(a,App(isLf(X),isLs(X)))”
-|> C mp (assume “SS(App(isLf(X),App(isLf(X),isLs(X))),App(isLf(X),isLs(X)))”)
-|> prove_hyp 
-   (isLf_monotone |> qspecl [‘App(isLf(X),isLs(X))’,‘isLs(X)’]
-                  |> undisch)
-|> prove_hyp isL_rules0
-|> prove_hyp (assume “∀xs. SS(App(isLf(X),xs),xs) ⇒ IN(a,xs)”
-                     |> qspecl [‘App(isLf(X),isLs(X))’])
-|> prove_hyp ( (iffRL isLs_cond) |> allE (rastt "a:mem(Pow(N * X))")
-                                 |> undisch)
-|> disch “IN(a,isLs(X))”
-|> allI ("a",mem_sort (rastt "Pow(N * X)")) 
-|> rewr_rule [GSYM SS_def] 
-|> conjI isL_rules0 
-|> mp (SS_SS_eq |> qspecl [‘Pow(N * X)’,‘App(isLf(X), isLs(X))’,‘isLs(X)’])
 
 
-val Cd_rules0 = mk_rules Cdf_monotone Cds_SS Cds_cond
-
-assume “SS(App(Cdf(X),App(Cdf(X),Cds(X))),App(Cdf(X),Cds(X))) ⇒ 
-        IN(a,App(Cdf(X),Cds(X)))”
-|> C mp (assume “SS(App(Cdf(X),App(Cdf(X),Cds(X))),App(Cdf(X),Cds(X)))”)
-|> prove_hyp 
-   (Cdf_monotone |> qspecl [‘App(Cdf(X),Cds(X))’,‘Cds(X)’]
-                  |> undisch)
-|> prove_hyp Cd_rules0
-|> prove_hyp (assume “∀xs. SS(App(Cdf(X),xs),xs) ⇒ IN(a,xs)”
-                     |> qspecl [‘App(Cdf(X),Cds(X))’])
-|> prove_hyp ( (iffRL Cds_cond) |> allE (rastt "a:mem(Pow(X) * N)")
-                                 |> undisch)
-|> disch “IN(a,Cds(X))”
-|> allI ("a",mem_sort (rastt "Pow(X) * N"))
-|> rewr_rule [GSYM SS_def]
-|> conjI Cd_rules0
-|> mp (SS_SS_eq |> qspecl [‘Pow(X) * N’,‘App(Cdf(X), Cds(X))’,‘Cds(X)’])
-
-
-val FI_rules0 = mk_rules FIf_monotone FIs_SS FIs_cond
-
-assume “SS(App(FIf(X),App(FIf(X),FIs(X))),App(FIf(X),FIs(X))) ⇒ 
-        IN(a,App(FIf(X),FIs(X)))”
-|> C mp (assume “SS(App(FIf(X),App(FIf(X),FIs(X))),App(FIf(X),FIs(X)))”)
-|> prove_hyp 
-   (FIf_monotone |> qspecl [‘App(FIf(X),FIs(X))’,‘FIs(X)’]
-                  |> undisch)
-|> prove_hyp FI_rules0
-|> prove_hyp (assume “∀xs. SS(App(FIf(X),xs),xs) ⇒ IN(a,xs)”
-                     |> qspecl [‘App(FIf(X),FIs(X))’])
-|> prove_hyp ( (iffRL FIs_cond) |> allE (rastt "a:mem(Pow(X))")
-                                 |> undisch)
-|> disch “IN(a,FIs(X))”
-|> allI ("a",mem_sort (rastt "Pow(X)"))
-|> rewr_rule [GSYM SS_def]
-|> conjI FI_rules0
-|> mp (SS_SS_eq |> qspecl [‘Pow(X)’,‘App(FIf(X), FIs(X))’,‘FIs(X)’])
-
-
-assume “SS(App(inNf,App(inNf,inNs)),App(inNf,inNs)) ⇒ 
-        IN(a,App(inNf,inNs))”
-|> C mp (assume “SS(App(inNf,App(inNf,inNs)),App(inNf,inNs))”)
-|> prove_hyp 
-   (inNf_monotone |> qspecl [‘App(inNf,inNs)’,‘inNs’]
-                  |> undisch)
-|> prove_hyp inN_rules0
-|> prove_hyp (assume “∀X. SS(App(inNf,X),X) ⇒ IN(a,X)”
-                     |> qspecl [‘App(inNf,inNs)’])
-|> prove_hyp ( (iffRL inNs_cond) |> allE (rastt "a:mem(N0)")
-                                 |> undisch)
-|> disch “IN(a,inNs)”
-|> allI ("a",mem_sort (rastt "N0"))
-|> rewr_rule [GSYM SS_def]
-|> conjI inN_rules0
-|> mp (SS_SS_eq |> qspecl [‘N0’,‘App(inNf, inNs)’,‘inNs’])
