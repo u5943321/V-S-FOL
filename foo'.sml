@@ -616,3 +616,46 @@ val th1 = (assume AuB)
 
 val th2 = A2A'uB' 
 val th3 = B2A'uB'
+
+val inNf_def = inNf_def;
+val inNf_monotone = mk_monotone inNf_def;
+val inN's_def = mk_prim inNf_def;
+val inNs_def = mk_LFP (rastt "inN's");
+val inNs_cond = mk_cond inNs_def inN's_def;
+val inNs_SS = mk_SS inNs_def inN's_def;
+val inN_rules0 = mk_rules inNf_monotone inNs_SS inNs_cond;
+val inN_cases0 = mk_cases inNf_monotone inN_rules0 inNs_cond;
+val inN_ind0 = mk_ind inNs_cond;
+
+
+val FIf_def = FIf_def;
+val FIf_monotone = mk_monotone FIf_def;
+val FI's_def = mk_prim FIf_def;
+val FIs_def = mk_LFP (rastt "FI's(X)");
+val FIs_cond = mk_cond FIs_def FI's_def;
+val FIs_SS = mk_SS FIs_def FI's_def;
+val FI_rules0 = mk_rules FIf_monotone FIs_SS FIs_cond;
+val FI_cases0 = mk_cases FIf_monotone FI_rules0 FIs_cond;
+val FI_ind0 = mk_ind FIs_cond;
+
+
+val Cdf_def = Cdf_def;
+val Cdf_monotone = mk_monotone Cdf_def;
+val Cd's_def = mk_prim Cdf_def; 
+val Cds_def = mk_LFP (rastt "Cd's(X)");
+val Cds_cond = mk_cond Cds_def Cd's_def;
+val Cds_SS = mk_SS Cds_def Cd's_def;
+val Cd_rules0 = mk_rules Cdf_monotone Cds_SS Cds_cond;
+val Cd_cases0 = mk_cases Cdf_monotone Cd_rules0 Cds_cond;
+val Cd_ind0 = mk_ind Cds_cond;
+
+
+val isLf_def = isLf_def;
+val isLf_monotone = mk_monotone isLf_def;
+val isL's_def = mk_prim isLf_def; 
+val isLs_def = mk_LFP (rastt "isL's(X)");
+val isLs_cond = mk_cond isLs_def isL's_def;
+val isLs_SS = mk_SS isLs_def isL's_def;
+val isL_rules0 = mk_rules isLf_monotone isLs_SS isLs_cond;
+val isL_cases0 = mk_cases isLf_monotone isL_rules0 isLs_cond; 
+val isL_ind0 = mk_ind isLs_cond;
