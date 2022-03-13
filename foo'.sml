@@ -363,4 +363,217 @@ fun mk_cases monotone rules0 cond =
     end
 
 
+(* |- A ⇒ A', |- B ⇒ B'
+------------------------
+ |- A ∧ B ⇒ A' ∧ B' *)
 
+fun conj_monotone ip1 ip2 = 
+    let val A2A' = concl ip1
+        val B2B' = concl ip2
+        val (A,A') = dest_imp A2A'
+        val (B,B') = dest_imp B2B'
+        val AnB = mk_conj A B
+        val A'nB' = mk_conj A' B'
+        val AnB2A' = assume AnB |> conjE1 |> mp ip1
+        val AnB2B' = assume AnB |> conjE2 |> mp ip2
+    in conjI AnB2A' AnB2B' |> disch AnB
+    end
+
+
+fun disj_monotone ip1 ip2 = 
+    let val A2A' = concl ip1
+        val B2B' = concl ip2
+        val (A,A') = dest_imp A2A'
+        val (B,B') = dest_imp B2B'
+        val AuB = mk_disj A B
+        val A'uB' = mk_disj A' B'
+        val A2A'uB' = assume A |> mp ip1 |> disjI1 B'
+        val B2A'uB' = assume B |> mp ip2 |> disjI2 A'
+    in disjE (assume AuB) A2A'uB' B2A'uB' |> disch AuB
+    end
+
+fun forall_monotone allip = 
+    let val ((n,s),ip) = allip |> concl |> dest_forall
+        val (ante,conseq) = dest_imp ip
+        val allante = mk_forall n s ante
+        val allconseq = mk_forall n s conseq 
+        val v0 = mk_var(n,s)
+    in allante |> assume |> allE v0 |> mp (allE v0 allip) |> allI (n,s)
+               |> disch allante 
+    end
+
+
+fun exists_monotone allip = 
+    let val ((n,s),ip) = allip |> concl |> dest_forall
+        val (ante,conseq) = dest_imp ip
+        val exante = mk_exists n s ante
+        val exconseq = mk_exists n s conseq 
+        val v0 = mk_var(n,s)
+    in ante |> assume |> mp (allE v0 allip) |> existsI (n,s) v0 conseq
+            |> existsE (n,s) (assume exante)
+            |> disch exante
+    end
+
+
+!(a : mem(N0)).
+        a# = O0 | (?(n0 : mem(N0)). IN(n0#, s1) & a# = App(S1, n0#)) ==>
+        a# = O0 | ?(n0 : mem(N0)). IN(n0#, s2) & a# = App(S1, n0#)
+
+val fm = “a = O0 | (?n0. IN(n0, s1) & a = App(S1, n0)) ==>
+ a = O0 | (?n0. IN(n0, s2) & a = App(S1, n0))”
+
+
+(*ip is a thm P(a) ⇒ Q(a), fm is an implication formula where both sides are of
+the same pattern, which can be bulit from applying monotone connectives and quantifiers.*)
+
+fun trivial_imp f = iffLR $ frefl f 
+
+val ip = assume “P ==> Q”
+val fm = “((P & A)| P) ==> (Q & A)| Q”
+
+val ip = assume “!a.P(a) ==> Q(a)”
+val fm = “(!a. P(a)) ==> (!a. Q(a))”
+
+val fm = “P(b) ==> Q(b)”
+
+val fm = “((!a. P(a) & R(b)) ) ==> (!a. Q(a) & R(b))”
+
+val fm = “((?a. P(a) & R(b)) ) ==> (?a. Q(a) & R(b))”
+
+(*can (match_form essps (HOLset.empty String.compare) “P(a)” “P(b)”) mempty*)
+
+val fm0 = 
+“SS(App(inNf,s1), App(inNf,s2))”
+|> basic_fconv (no_conv) (first_fconv [rewr_fconv(spec_all SS_def),rewr_fconv (spec_all inNf_def)])
+|> concl |> #2 o dest_dimp |> #2 o dest_forall
+
+val ip0 = “SS(s1:mem(Pow(N0)),s2)” |> assume
+           |> rewr_rule[SS_def]
+
+
+val fm0 = 
+“SS(App(FIf(X),s1), App(FIf(X),s2))”
+|> basic_fconv (no_conv) (first_fconv [rewr_fconv(spec_all SS_def),rewr_fconv (spec_all FIf_def)])
+|> concl |> #2 o dest_dimp |> #2 o dest_forall
+
+val ip0 = “SS(s1:mem(Pow(Pow(X))),s2)” |> assume
+           |> rewr_rule[SS_def]
+
+
+val fm0 = 
+“SS(App(Cdf(X),s1), App(Cdf(X),s2))”
+|> basic_fconv (no_conv) (first_fconv [rewr_fconv(spec_all SS_def),rewr_fconv (spec_all Cdf_def)])
+|> concl |> #2 o dest_dimp |> #2 o dest_forall
+
+val ip0 = “SS(s1:mem(Pow(Pow(X) * N)),s2)” |> assume
+           |> rewr_rule[SS_def]
+
+
+
+val fm0 = 
+“SS(App(isLf(X),s1), App(isLf(X),s2))”
+|> basic_fconv (no_conv) (first_fconv [rewr_fconv(spec_all SS_def),rewr_fconv (spec_all isLf_def)])
+|> concl |> #2 o dest_dimp |> #2 o dest_forall
+
+val ip0 = “SS(s1:mem(Pow(Pow(N * X))),s2)” |> assume
+           |> rewr_rule[SS_def]
+
+
+
+imp_induce ip0 fm0
+
+
+
+fun imp_induce ip fm = 
+    let val ((n,s),b) = dest_forall (concl ip)
+        val v0 = mk_var (n,s)
+        val ip1 = allE v0 ip
+        val (ante0,conseq0) = dest_imp (concl ip1)
+        val (ante,conseq) = dest_imp fm
+    in (*assume ante and conseq same pattern*)
+        if eq_form(ante,conseq) then trivial_imp ante else 
+        if can (match_form essps (HOLset.empty String.compare) ante ante0) mempty
+        then let val env = match_form essps 
+                           (HOLset.empty String.compare) ante0 ante mempty
+                 val ip1' = inst_thm env ip1 
+                 val (ante',conseq') = dest_imp (concl ip1')
+             in if eq_form(ante,ante') andalso eq_form(conseq,conseq') 
+                then ip1' else 
+                raise simple_fail "imp_induce"
+             end
+        else
+        case (view_form ante,view_form conseq) of 
+            (vConn("&",[a1,a2]),vConn("&",[c1,c2])) => 
+            let val ip1 = imp_induce ip (mk_imp a1 c1)
+                val ip2 = imp_induce ip (mk_imp a2 c2)
+            in conj_monotone ip1 ip2
+            end 
+          | (vConn("|",[a1,a2]),vConn("|",[c1,c2])) => 
+            let val ip1 = imp_induce ip (mk_imp a1 c1)
+                val ip2 = imp_induce ip (mk_imp a2 c2)
+            in disj_monotone ip1 ip2
+            end 
+          (*assume the two sides has the same bound name to work!*)
+          | (vQ("!",n1,s1,b1),vQ("!",n2,s2,b2)) => 
+            let val ip0 = imp_induce ip (mk_imp b1 b2)
+            in forall_monotone (allI (n1,s1) ip0)
+            end
+          | (vQ("?",n1,s1,b1),vQ("?",n2,s2,b2)) => 
+            let val ip0 = imp_induce ip (mk_imp b1 b2)
+            in exists_monotone (allI (n1,s1) ip0)
+            end
+    end
+
+(*
+fun imp_induce ip fm = 
+    let val (ante0,conseq0) = dest_imp (concl ip)
+        val (ante,conseq) = dest_imp fm
+    in (*assume ante and conseq same pattern*)
+        if eq_form(ante,conseq) then trivial_imp ante else 
+        if eq_form(ante,ante0) andalso eq_form(conseq,conseq0) then ip else 
+        case (view_form ante,view_form conseq) of 
+            (vConn("&",[a1,a2]),vConn("&",[c1,c2])) => 
+            let val ip1 = imp_induce ip (mk_imp a1 c1)
+                val ip2 = imp_induce ip (mk_imp a2 c2)
+            in conj_monotone ip1 ip2
+            end 
+          | (vConn("|",[a1,a2]),vConn("|",[c1,c2])) => 
+            let val ip1 = imp_induce ip (mk_imp a1 c1)
+                val ip2 = imp_induce ip (mk_imp a2 c2)
+            in disj_monotone ip1 ip2
+            end 
+          (*assume the two sides has the same bound name to work!*)
+          | (vQ("!",n1,s1,b1),vQ("!",n2,s2,b2)) => 
+            let val ip0 = imp_induce ip (mk_imp b1 b2)
+            in forall_monotone (allI (n1,s1) ip0)
+            end
+    end
+          
+*)
+
+
+
+
+(*|- B ⇒ B' 
+------------------
+ |- (A ⇒ B) ⇒ A ⇒ B'
+fun imp_monotone ip = 
+    let val A2A' = concl ip1
+        val B2B' = concl ip2
+        val (A,A') = dest_imp A2A'
+        val (B,B') = dest_imp B2B'
+        val A2B = mk_imp A B
+        val A'2B' = mk_imp A' B'
+    in assume A2B
+        val A2A'uB' = assume A |> mp ip1 |> disjI1 B'
+        val B2A'uB' = assume B |> mp ip2 |> disjI2 A'
+    in disjE (assume AuB) A2A'uB' B2A'uB' |> disch AuB
+    end
+not sure if need it
+*)
+
+
+val th1 = (assume AuB)
+
+val th2 = A2A'uB' 
+val th3 = B2A'uB'

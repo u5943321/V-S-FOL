@@ -103,7 +103,7 @@ fun disjE th1 th2 th3 =
                 raise ERR ("disjE.second disjunct not in the formula list: ",
                            [],[],[B])
     in
-        thm(contl_U [cont th1,cont th2, cont th3],asml_U [ril A (ant th2),ril B (ant th3)],
+        thm(contl_U [cont th1,cont th2, cont th3],asml_U [ant th1,ril A (ant th2),ril B (ant th3)],
             concl th3)
     end
 
