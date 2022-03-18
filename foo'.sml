@@ -773,6 +773,8 @@ val (inN_incond,x1) =
            ?n0. IN(n0,x) & n = App(S1,n0)))”,"x");
 
 
+
+
 val inNf_ex = mk_fex inN_incond x1;
 val inNf_def = mk_fdef "inNf" inNf_ex;
 val inNf_monotone = mk_monotone inNf_def;
@@ -863,6 +865,13 @@ val isL_ind1 = mk_ind1 isLf_def isL_ind0;
 val isL_cases1 = mk_case1 isLf_def isL_cases0;
 val isL_rules1 = mk_rules1 isLf_def isL_rules0;
 val isL_rules2 = mk_rules2 isL_rules1;
+
+
+
+
+
+val f = isL_rules2 |> concl
+
 
 (*TODO: subst eqn in mk_rules2*)
 

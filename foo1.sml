@@ -519,8 +519,10 @@ fun disj_imp_distr_fconv f =
     in th0
     end
 
-(*(?(a : set). P(a#)) ==> Q(c) <=> 
-   !a. P(a) ==> Q(c)
+(*
+
+(?(a : set). P(a#)) ==> Q(c) <=> 
+!a. P(a) ==> Q(c)
 
 rename due to:
 
@@ -529,6 +531,7 @@ if (?a. P(a)) ==> Q(a)
 
 val f = “(?a. P(a)) ==> Q(a)”
 *)
+
 fun pull_exists_fconv1 f = 
     let val (ante,conseq) = dest_imp f 
         val (v0 as (n,s),b) = dest_exists ante
@@ -555,3 +558,205 @@ fun mk_rules2 rules1 =
               (basic_fconv no_conv disj_imp_distr_fconv)
            |> conv_rule 
               (basic_fconv no_conv pull_exists_fconv1)
+
+(*val f = “!a. P(a)& Q(a) ” “!a. P(a)& Q(a) <=> (!a.P(a)) & (!a.Q(a))” *)
+
+
+fun forall_conj_split_fconv f = 
+    let val (v as (n,s),c) = dest_forall f 
+        val (c1,c2) = dest_conj c 
+        val vt = mk_var v
+        val c1' = mk_forall n s c1 
+        val c2' = mk_forall n s c2 
+        val f' = mk_conj c1' c2' 
+        val l2r = conjI
+                      (f |> assume |> allE vt |> conjE1 
+                         |> allI v)
+                      (f |> assume |> allE vt |> conjE2
+                         |> allI v)
+                      |> disch f
+        val r2l = disch f' $ allI v $ conjI 
+                        (f' |> assume |> conjE1 |> allE vt)
+                        (f' |> assume |> conjE2 |> allE vt)
+    in dimpI l2r r2l
+    end
+
+
+fun exists_eq_fconv f = 
+    let val (v as (n,s),b) = dest_exists f
+        val (eqn,b0) = dest_conj b
+        val _ = is_eq eqn orelse 
+                raise ERR ("ex_eq_fconv.not an equation",[],[],[f])
+        val eqth = assume eqn
+        val b0th = basic_fconv (rewr_conv eqth) no_fconv b0
+        val b0th' = b0th |> iffLR |> undisch |> conj_assum eqn b0
+        val b0' = b0th |> concl |> dest_dimp |> #2
+        val l2r = existsE v (assume f) b0th' |> disch f
+        val (t1,t2) = dest_eq eqn
+        val th0 = conjI (refl t2) (assume b0')
+        val r2l = th0 |> existsI v t2 b |> disch b0'
+    in dimpI l2r r2l
+    end
+
+
+fun forall_eq_fconv f = 
+    let val (v as (n,s),b) = dest_forall f
+        val (eqn,conc) = dest_imp b
+        val (t1,t2) = dest_eq eqn
+        val l2r = assume f |> allE t2 |> C mp (refl t2) |> disch f
+        val eqth = sym (assume eqn)
+        val conc1 = substf (v,t2) conc
+        val r2l = assume conc1 |> rewr_rule[eqth] |> disch eqn |> allI v
+                         |> disch conc1
+    in dimpI l2r r2l
+    end
+
+
+fun conj_swap_fconv f = 
+    let val (p,q) = dest_conj f
+        val lhs = mk_conj p q
+        val rhs = mk_conj q p
+        val l2r = conjI (assume lhs |> conjE2) (assume lhs |> conjE1) 
+                        |> disch lhs
+        val r2l = conjI (assume rhs |> conjE2) (assume rhs |> conjE1) 
+                        |> disch rhs
+    in
+        dimpI l2r r2l
+    end
+
+fun conj_assoc_fconv f =
+    let val (AB,C) = dest_conj f
+        val (A,B) = dest_conj AB
+        val AB = mk_conj A B
+        val BC = mk_conj B C
+        val ABC1 = mk_conj AB C
+        val ABC = mk_conj A BC
+        val l2r = conjI (assume ABC1 |> conjE1 |> conjE1)
+                        (conjI (assume ABC1 |> conjE1 |> conjE2)
+                               (assume ABC1 |> conjE2)) |> disch_all
+        val r2l = conjI (conjI (assume ABC |> conjE1)
+                               (assume ABC |> conjE2 |> conjE1))
+                        (assume ABC |> conjE2 |> conjE2) |> disch_all
+    in 
+        dimpI l2r r2l
+    end
+
+
+
+fun conj_cossa_fconv f =
+    let val (A,BC) = dest_conj f
+        val (B,C) = dest_conj BC
+        val AB = mk_conj A B
+        val BC = mk_conj B C
+        val ABC1 = mk_conj AB C
+        val ABC = mk_conj A BC
+        val l2r = conjI (assume ABC1 |> conjE1 |> conjE1)
+                        (conjI (assume ABC1 |> conjE1 |> conjE2)
+                               (assume ABC1 |> conjE2)) |> disch_all
+        val r2l = conjI (conjI (assume ABC |> conjE1)
+                               (assume ABC |> conjE2 |> conjE1))
+                        (assume ABC |> conjE2 |> conjE2) |> disch_all
+    in 
+        dimpI r2l l2r
+    end
+
+
+fun PULL_CONJ p f = 
+  if p f then SOME (frefl f)
+  else
+    case view_form f of
+      vConn("&", [f1,f2]) => 
+       (case (PULL_CONJ p) f1 of
+          NONE => (case (PULL_CONJ p) f2 of
+                     NONE => NONE
+                   | SOME f2eqth => 
+                     if is_eq (f2eqth |> concl |> dest_dimp |> #2)
+                     then 
+                         let val th1 = conj_iff (frefl f1) f2eqth
+                             val f0 = mk_conj f1 (f2eqth |> concl |> dest_dimp |> #2)
+                             val f0th = conj_swap_fconv f0
+                         in SOME (iff_trans th1 f0th)
+                         end
+                     else
+                     let val eqandsth = f2eqth |> concl |> dest_dimp |> #2
+                         val f2eqth' = iff_trans f2eqth (conj_swap_fconv eqandsth)
+                         val cth = conj_iff (frefl f1) f2eqth'
+                         val tocossa = cth |> concl |> dest_dimp |> #2
+                         val th' = tocossa |> (conj_cossa_fconv thenfc conj_swap_fconv)
+                         val th1 = iff_trans cth th'
+                     in SOME th1
+                     end)
+        | SOME f1eqth => 
+          let val th0 = conj_iff f1eqth (frefl f2) 
+              val f' = th0 |> concl |> dest_dimp |> #2
+          in
+          SOME (iff_trans th0 (try_fconv conj_assoc_fconv f'))
+          end)
+    | _ => NONE
+
+fun pull_conj_fconv p f = 
+    case PULL_CONJ p f of SOME th => th
+                      | _ => raise simple_fail "pull_conj_fconv";
+
+
+
+fun conj_imp_fconv f = 
+    let 
+        val (AB,C) = dest_imp f
+        val (A,B) = dest_conj AB
+        val ab = mk_conj A B
+        val ab2c = mk_imp ab C
+        val a2b2c = mk_imp A (mk_imp B C)
+        val conjabonc = mp (assume ab2c) (conjI (assume A) (assume B))
+        val conj2imp = disch ab2c (disch A (disch B conjabonc))
+        val abona = conjE1 (assume ab)
+        val abonb = conjE2 (assume ab)
+        val imp2conj = disch a2b2c (disch ab (mp (mp (assume a2b2c) abona) abonb))
+    in dimpI conj2imp imp2conj
+    end
+
+(*--find among the conjunctions if there is a equation,
+  --if there is one, then pull it out to the outmost conj
+  --fconv into a = b ==> ... to apply forall_eq_fconv
+  --quantifier order *)
+
+
+
+
+fun remove_list_item i l = 
+    case l of [] => []
+            | h :: t => 
+              if (h = i) then t else
+              h :: (remove_list_item  i t)
+
+fun mk_foralls vl f = 
+    case vl of [] => f 
+             | h :: t => uncurry mk_forall h (mk_foralls t f)
+
+fun forall_in_eq_fconv f = 
+    let val (b,vs) = strip_forall f
+        val (ante,conc) = dest_imp b 
+        val (l,r) = dest_eq ante 
+        val v = dest_var l
+        val vs' = remove_list_item v vs
+        val vl = (rev $ v :: rev vs')
+        val f' = mk_foralls vl b
+        val l2r = f |> assume |> specl (List.map mk_var vs)
+                    |> simple_genl vl |> disch f
+        val r2l = f'|> assume |> specl (List.map mk_var vl)
+                    |> simple_genl vs |> disch f'
+    in dimpI l2r r2l
+    end
+
+
+fun mk_rules3 rules2 = 
+rules2  |> conv_rule (basic_fconv no_conv forall_conj_split_fconv)
+  |> conv_rule (basic_fconv no_conv forall_eq_fconv)
+  |> conv_rule (basic_once_fconv no_conv (pull_conj_fconv is_eq))
+  |> conv_rule (basic_fconv no_conv conj_imp_fconv) 
+  |> conv_rule (basic_once_fconv no_conv forall_in_eq_fconv)
+  (*do not understand why forall_in_eq_fconv can loop*)
+  |> conv_rule (basic_fconv no_conv forall_eq_fconv)
+
+
+fun mk_incond f = 

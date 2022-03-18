@@ -1369,4 +1369,256 @@ val F_disj_2 = F_disj2 (mk_fvar "f0")
 *)
 
 
+
+
+(*
+(?f. f = g & P(f) ) <=> P(g)
+
+
+
+basic_fconv no_conv ex_eq_fconv “?f:A->B. f = h & g = h & Mono(f)” works
+
+ “?f:A->B g. f = g & g = h & Mono(f)” ex_eq_fconv no change
+
+basic_fconv no_conv ex_eq_fconv 
+
+“?f:A->B g. a = Pa(f,g) & Mono(a)” <=> ?
+
+*)
+
+
+(*
+fun exists_eq_fconv f = 
+    let val (v as (n,s),b) = dest_exists f
+        val (eqn,b0) = dest_conj b
+        val _ = is_eq eqn orelse 
+                raise ERR ("ex_eq_fconv.not an equation",[],[],[f])
+        val eqth = assume eqn
+        val b0th = basic_fconv (rewr_conv eqth) no_fconv b0
+        val b0th' = b0th |> iffLR |> undisch |> conj_assum eqn b0
+        val b0' = b0th |> concl |> dest_dimp |> #2
+        val l2r = existsE v (assume f) b0th' |> disch f
+        val (t1,t2) = dest_eq eqn
+        val th0 = conjI (refl t2) (assume b0')
+        val r2l = th0 |> existsI v t2 b |> disch b0'
+    in dimpI l2r r2l
+    end
+
+
+(*
+(!a. a = b & A ==> P(a)) <=> A ==> P(b)
+
+!a. a = b ==> P(a)
+
+val f = “!a:A->B. a = b ==> Mono(a)”
+
+not insert a T if not a conjunction, afraid of looping
+*)
+
+fun all_eq_fconv f = 
+    let val (v as (n,s),b) = dest_forall f
+        val (eqn,conc) = dest_imp b
+        val (t1,t2) = dest_eq eqn
+        val l2r = assume f |> allE t2 |> C mp (refl t2) |> disch f
+        val eqth = sym (assume eqn)
+        val conc1 = substf (v,t2) conc
+        val r2l = assume conc1 |> rewr_rule[eqth] |> disch eqn |> allI v
+                         |> disch conc1
+    in dimpI l2r r2l
+    end
+*)
+
+
+fun conj_swap_fconv f = 
+    let val (p,q) = dest_conj f
+        val lhs = mk_conj p q
+        val rhs = mk_conj q p
+        val l2r = conjI (assume lhs |> conjE2) (assume lhs |> conjE1) 
+                        |> disch lhs
+        val r2l = conjI (assume rhs |> conjE2) (assume rhs |> conjE1) 
+                        |> disch rhs
+    in
+        dimpI l2r r2l
+    end
+
+fun conj_assoc_fconv f =
+    let val (AB,C) = dest_conj f
+        val (A,B) = dest_conj AB
+        val AB = mk_conj A B
+        val BC = mk_conj B C
+        val ABC1 = mk_conj AB C
+        val ABC = mk_conj A BC
+        val l2r = conjI (assume ABC1 |> conjE1 |> conjE1)
+                        (conjI (assume ABC1 |> conjE1 |> conjE2)
+                               (assume ABC1 |> conjE2)) |> disch_all
+        val r2l = conjI (conjI (assume ABC |> conjE1)
+                               (assume ABC |> conjE2 |> conjE1))
+                        (assume ABC |> conjE2 |> conjE2) |> disch_all
+    in 
+        dimpI l2r r2l
+    end
+
+
+
+fun conj_cossa_fconv f =
+    let val (A,BC) = dest_conj f
+        val (B,C) = dest_conj BC
+        val AB = mk_conj A B
+        val BC = mk_conj B C
+        val ABC1 = mk_conj AB C
+        val ABC = mk_conj A BC
+        val l2r = conjI (assume ABC1 |> conjE1 |> conjE1)
+                        (conjI (assume ABC1 |> conjE1 |> conjE2)
+                               (assume ABC1 |> conjE2)) |> disch_all
+        val r2l = conjI (conjI (assume ABC |> conjE1)
+                               (assume ABC |> conjE2 |> conjE1))
+                        (assume ABC |> conjE2 |> conjE2) |> disch_all
+    in 
+        dimpI r2l l2r
+    end
+(*
+fun total f x = 
+  SOME (f x) handle _ => NONE
+
+val f2eqth = mk_thm(essps,[],“f2 <=> x = y & P(a)”)
+
+val f1 = “f1”
+
+val f2 = “f2”
+
+val f1eqth = mk_thm(essps,[],“f1 <=> x = y & P(a)”)
+
+fun PULL_CONJ p f = 
+  if p f then SOME (frefl f)
+  else
+    case view_form f of
+      vConn("&", [f1,f2]) => 
+       (case (PULL_CONJ p) f1 of
+          NONE => (case (PULL_CONJ p) f2 of
+                     NONE => NONE
+                   | SOME f2eqth => 
+                     if is_eq (f2eqth |> concl |> dest_dimp |> #2)
+                     then 
+                         let val th1 = conj_iff (frefl f1) f2eqth
+                             val f0 = mk_conj f1 (f2eqth |> concl |> dest_dimp |> #2)
+                             val f0th = conj_swap_fconv f0
+                         in SOME (iff_trans th1 f0th)
+                         end
+                     else
+                     let val eqandsth = f2eqth |> concl |> dest_dimp |> #2
+                         val f2eqth' = iff_trans f2eqth (conj_swap_fconv eqandsth)
+                         val cth = conj_iff (frefl f1) f2eqth'
+                         val tocossa = cth |> concl |> dest_dimp |> #2
+                         val th' = tocossa |> (conj_cossa_fconv thenfc conj_swap_fconv)
+                         val th1 = iff_trans cth th'
+                     in SOME th1
+                     end)
+        | SOME f1eqth => 
+          let val th0 = conj_iff f1eqth (frefl f2) 
+              val f' = th0 |> concl |> dest_dimp |> #2
+          in
+          SOME (iff_trans th0 (try_fconv conj_assoc_fconv f'))
+          end)
+    | _ => NONE
+
+
+
+fun PULL_CONJ p f = 
+  if p f then SOME (frefl f)
+  else
+    case view_form f of
+      vConn("&", [f1,f2]) => 
+       (case (PULL_CONJ p) f1 of
+          NONE => (case (PULL_CONJ p) f2 of
+                     NONE => NONE
+                   | SOME f2eqth => 
+                     if is_eq (f2eqth |> concl |> dest_dimp |> #2)
+                     then 
+                         let val th1 = conj_iff (frefl f1) f2eqth
+                             val f0 = mk_conj f1 (f2eqth |> concl |> dest_dimp |> #2)
+                             val f0th = conj_swap_fconv f0
+                         in SOME (iff_trans th1 f0th)
+                         end
+                     else
+                     let val eqandsth = f2eqth |> concl |> dest_dimp |> #2
+                         val f2eqth' = iff_trans f2eqth (conj_swap_fconv eqandsth)
+                         val cth = conj_iff (frefl f1) f2eqth'
+                         val tocossa = cth |> concl |> dest_dimp |> #2
+                         val th' = tocossa |> (conj_cossa_fconv thenfc conj_swap_fconv)
+                         val th1 = iff_trans cth th'
+                     in SOME th1
+                     end)
+        | SOME f1eqth => 
+          let val th0 = conj_iff f1eqth (frefl f2) 
+              val f' = th0 |> concl |> dest_dimp |> #2
+          in
+          SOME (iff_trans th0 (try_fconv conj_assoc_fconv f'))
+          end)
+    | _ => NONE
+
+fun pull_conj_fconv p f = 
+    case PULL_CONJ p f of SOME th => th
+                      | _ => raise simple_fail "pull_conj_fconv";
+
+PULL_CONJ (is_eq) “a = b & P(a) & x = y”
+
+basic_fconv no_conv (pull_conj_fconv (is_eq)) “P(a) & x = y & Q(a) & y =z & R(a)”
+
+PULL_CONJ (is_eq) “a = b & P(a)”
+       
+**
+
+easy case
+
+|- f2 ⇔ (x = e)
+--------------------
+|- f1 /\ f2 ⇔ f1 /\ (x = e)
+------------------------------ comm
+|- f1 /\ f2 ⇔ (x = e) /\ f1
+
+hard case:
+
+f = f1 /\ f2
+
+|- f2 <=> f2'  (* and by IH, f2' = (x = e) /\ ... *)
+
+|- f1 /\ f2 <=> f1 /\ ((x= e) /\ f20)   (* not quite *)
+
+use associativity and commutativity to combine and get
+
+
+  |-  f2 <=> (x = e) /\ f20     
+ - - - - - - - - - - - - - - -  comm
+  |-  f2 <=> f20 /\ (x = e)          
+ - - - - - - - - - - - - - -- -- - - - - -
+  |- f1 /\ f2 <=> f1 /\ (f20 /\ (x = e)) 
+------------------------------------------ assoc
+  |- f1 /\ f2 <=> (f1 /\ f20) /\ (x = e)
+ - --------------------------------------  comm
+  |- f1 /\ f2 <=> x = e /\ (f1 /\ f20)
+
+
+
+* 
+
+easy case
+
+|- f1 ⇔ x = e
+-------------
+|- f1 /\ f2 ⇔ x = e /\ f2
+
+
+hard case
+
+  |- f1 ⇔ (x = e) /\ f10
+ ------------------------
+ |- f1 /\ f2 ⇔ ((x = e) /\ f10) /\ f2
+-------------------------------------------------------- assoc
+ |- f1 /\ f2 ⇔ (x = e) /\ (f10 /\ f2)
+  
+
+
+
+*)
+
 end
