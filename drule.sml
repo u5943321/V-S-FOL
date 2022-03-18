@@ -1388,22 +1388,6 @@ basic_fconv no_conv ex_eq_fconv
 
 
 (*
-fun exists_eq_fconv f = 
-    let val (v as (n,s),b) = dest_exists f
-        val (eqn,b0) = dest_conj b
-        val _ = is_eq eqn orelse 
-                raise ERR ("ex_eq_fconv.not an equation",[],[],[f])
-        val eqth = assume eqn
-        val b0th = basic_fconv (rewr_conv eqth) no_fconv b0
-        val b0th' = b0th |> iffLR |> undisch |> conj_assum eqn b0
-        val b0' = b0th |> concl |> dest_dimp |> #2
-        val l2r = existsE v (assume f) b0th' |> disch f
-        val (t1,t2) = dest_eq eqn
-        val th0 = conjI (refl t2) (assume b0')
-        val r2l = th0 |> existsI v t2 b |> disch b0'
-    in dimpI l2r r2l
-    end
-
 
 (*
 (!a. a = b & A ==> P(a)) <=> A ==> P(b)
@@ -1415,67 +1399,8 @@ val f = “!a:A->B. a = b ==> Mono(a)”
 not insert a T if not a conjunction, afraid of looping
 *)
 
-fun all_eq_fconv f = 
-    let val (v as (n,s),b) = dest_forall f
-        val (eqn,conc) = dest_imp b
-        val (t1,t2) = dest_eq eqn
-        val l2r = assume f |> allE t2 |> C mp (refl t2) |> disch f
-        val eqth = sym (assume eqn)
-        val conc1 = substf (v,t2) conc
-        val r2l = assume conc1 |> rewr_rule[eqth] |> disch eqn |> allI v
-                         |> disch conc1
-    in dimpI l2r r2l
-    end
 *)
 
-
-fun conj_swap_fconv f = 
-    let val (p,q) = dest_conj f
-        val lhs = mk_conj p q
-        val rhs = mk_conj q p
-        val l2r = conjI (assume lhs |> conjE2) (assume lhs |> conjE1) 
-                        |> disch lhs
-        val r2l = conjI (assume rhs |> conjE2) (assume rhs |> conjE1) 
-                        |> disch rhs
-    in
-        dimpI l2r r2l
-    end
-
-fun conj_assoc_fconv f =
-    let val (AB,C) = dest_conj f
-        val (A,B) = dest_conj AB
-        val AB = mk_conj A B
-        val BC = mk_conj B C
-        val ABC1 = mk_conj AB C
-        val ABC = mk_conj A BC
-        val l2r = conjI (assume ABC1 |> conjE1 |> conjE1)
-                        (conjI (assume ABC1 |> conjE1 |> conjE2)
-                               (assume ABC1 |> conjE2)) |> disch_all
-        val r2l = conjI (conjI (assume ABC |> conjE1)
-                               (assume ABC |> conjE2 |> conjE1))
-                        (assume ABC |> conjE2 |> conjE2) |> disch_all
-    in 
-        dimpI l2r r2l
-    end
-
-
-
-fun conj_cossa_fconv f =
-    let val (A,BC) = dest_conj f
-        val (B,C) = dest_conj BC
-        val AB = mk_conj A B
-        val BC = mk_conj B C
-        val ABC1 = mk_conj AB C
-        val ABC = mk_conj A BC
-        val l2r = conjI (assume ABC1 |> conjE1 |> conjE1)
-                        (conjI (assume ABC1 |> conjE1 |> conjE2)
-                               (assume ABC1 |> conjE2)) |> disch_all
-        val r2l = conjI (conjI (assume ABC |> conjE1)
-                               (assume ABC |> conjE2 |> conjE1))
-                        (assume ABC |> conjE2 |> conjE2) |> disch_all
-    in 
-        dimpI r2l l2r
-    end
 (*
 fun total f x = 
   SOME (f x) handle _ => NONE

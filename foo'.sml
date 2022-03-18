@@ -773,7 +773,9 @@ val (inN_incond,x1) =
            ?n0. IN(n0,x) & n = App(S1,n0)))”,"x");
 
 
-
+val f1 = “(!n. IN(n,y) <=> 
+          (n = O0 | 
+           ?n0. IN(n0,x) & n = App(S1,n0)))”
 
 val inNf_ex = mk_fex inN_incond x1;
 val inNf_def = mk_fdef "inNf" inNf_ex;

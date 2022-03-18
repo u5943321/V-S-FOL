@@ -758,5 +758,77 @@ rules2  |> conv_rule (basic_fconv no_conv forall_conj_split_fconv)
   (*do not understand why forall_in_eq_fconv can loop*)
   |> conv_rule (basic_fconv no_conv forall_eq_fconv)
 
+(*A ==> C & B ==> C <=> A | B ==> C*)
+
+fun disj_imp_undistr_fconv f = 
+    let val (imp1,imp2) = dest_conj f 
+        val (A,C1) = dest_imp imp1 
+        val (B,C2) = dest_imp imp2 
+        val _ = eq_form(C1,C2) orelse raise ERR ("disj_imp_undistr_fconv.conclusion not same",[],[],[C1,C2]) 
+        val th0 = disj_imp_distr A B C1
+    in GSYM th0 
+    end
+
+
+(*“!a.P(a) ==> Q” *)
+fun unpull_exists_fconv1 f = 
+    let val (v as (n,s),b) = dest_forall f 
+        val (ante,conc) = dest_imp b
+        val vt = mk_var v
+        val eante = (uncurry mk_exists v ante)
+        val goal = mk_imp eante conc
+        val ex2all = ante |> assume |> existsI v vt ante
+                          |> mp (assume goal)
+                          |> disch ante |> allI v
+                          |> disch goal
+        val all2ex = f |> assume |> allE vt 
+                       |> undisch
+                       |> existsE v (assume eante)
+                       |> disch eante
+                       |> disch f
+    in dimpI all2ex ex2all 
+    end
+
+
+val f = “(n = O0 ==> IN(n,inN)) &
+         (!n0. IN(n0,inN) & n = App(S1,n0) ==> IN(n,inN))”
+
+val f = “(xs = Empty(X) ==> IN(xs,FI)) &
+         (!xs0:mem(Pow(X)) x. IN(xs0,FI) & xs = Ins(x,xs0) ==>
+         IN(xs,FI))”
+
+val f = “(xsn = Pair(Empty(X),O) ==> IN(xsn,Cd)) &
+         (!xsn0 x. IN(xsn0,Cd) &  ~(IN(x,Fst(xsn0))) & 
+          xsn = Pair(Ins(x,Fst(xsn0)),Suc(Snd(xsn0))) ==>
+         IN(xsn,Cd))”
+
+val f = “(ls = Empty(N * X) ==> IN(ls,isL)) &
+         (!ls0 x. IN(ls0,isL) & ls = Ins(Pair(CARD(ls0),x),ls0) ==> IN(ls,isL)) ”
+
+
+unpull_exists_fconv1 “(!n0. IN(n0,inN) & n = App(S1,n0) ==> IN(n,inN))”
 
 fun mk_incond f = 
+    let val th0 = basic_fconv no_conv unpull_exists_fconv1 f
+        (*ideally, will give identical conclusion*)
+        val f1 = th0 |> concl |> dest_dimp |> #2
+        val th1 = basic_fconv no_conv disj_imp_undistr_fconv f1
+        val f2 = th1 |> concl |> dest_dimp |> #2
+        val (ante,conc) = dest_imp f2
+        val [qv,newtm] = conc |> dest_pred |> #2
+        val (newname,st) = dest_var newtm
+        (*check avoids here*)
+        val fiv = mk_var (newname ^ "0",st) 
+        val fov = mk_var (newname ^ "1",st)
+        val conc' = substf ((newname,st),fov) conc
+        val ante' = substf ((newname,st),fiv) ante
+        val f3 = uncurry mk_forall (dest_var qv) 
+                         (mk_dimp conc' ante')
+    in (f3,newname ^ "0")
+    end
+
+val th0 = assume f 
+        val fl = conjuncts th0 |> List.map (concl o spec_all)
+        val cl = mk_conjl fl
+        val th1 = basic_fconv no_conv disj_imp_undistr_fconv cl ‘’
+val th0 = basic_fconv no_conv disj_imp_undistr_fconv f
