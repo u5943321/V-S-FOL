@@ -62,6 +62,74 @@ val S1_def = rel2fun_ex |> qspecl [‘N0’,‘N0’,‘S0’]
                         |> ex2fsym0 "S1" []
                         |> store_as "S1_def";
 
+val rel2fun_ex = prove_store("rel2fun_ex",
+e0
+(rpt strip_tac >> drule rel2fun >>
+ pop_assum (strip_assume_tac o uex_expand) >>
+ qexists_tac ‘f’ >> arw[])
+(form_goal
+ “!A B R:A~>B. isFun(R) ==> 
+  ?f:A ->B. !a b. App(f,a) = b <=> Holds(R,a,b)”));
+
+val rel2fun_ex' = rel2fun_ex |> rewr_rule[Fun_def]
+
+val AX1_ex = prove_store("AX1_ex",
+e0
+(rpt strip_tac >>
+ qspecl_then [‘A’,‘B’] (strip_assume_tac o uex_expand) AX1 >>
+ qexists_tac ‘R’ >> arw[])
+(form_goal
+ “!A B. ?R:A~>B. !a b. Holds(R,a,b) <=> P(a,b)”));
+ 
+val P2fun = prove_store("P2fun",
+e0
+(rpt strip_tac >>
+ qspecl_then [‘A’,‘B’] (strip_assume_tac) 
+ (AX1_ex) >>
+ qby_tac ‘!x. ?!y. Holds(R,x,y)’
+ >-- (arw[]) >>
+ drule rel2fun_ex' >>
+ pop_assum strip_assume_tac >>
+ qexists_tac ‘f’ >> rfs[])
+(form_goal “!A B. (!x:mem(A). ?!y:mem(B). P(x,y)) ==>
+ ?f:A->B. !a:mem(A) b:mem(B). App(f,a) = b <=> P(a,b)”));
+
+
+val P2fun' = prove_store("P2fun'",
+e0
+(rpt strip_tac >> drule P2fun >>
+ pop_assum strip_assume_tac >>  
+ qexists_tac ‘f’ >> 
+ pop_assum (assume_tac o GSYM) >> arw[])
+(form_goal “!A B. (!x:mem(A). ?!y:mem(B). P(x,y)) ==>
+ ?f:A->B. !a:mem(A). P(a, App(f,a))”));
+
+
+
+val IN_def_P = In_def_P |>rewr_rule[GSYM IN_def]
+                        |> GSYM
+                        |> store_as "IN_def_P";
+
+(*
+P2fun' |> qspecl [‘Pow(N0)’,‘Pow(N0)’]
+|> fVar_sInst_th “P(x:mem(Pow(N0)),y:mem(Pow(N0)))”
+   “(!n. IN(n,y) <=> 
+          (n = O0 | 
+           ?n0. IN(n0,x) & n = App(S1,n0)))”
+|> C mp
+   (IN_def_P |> qspecl [‘N0’]
+    |> fVar_sInst_th “P(n:mem(N0))”
+       “n = O0 | ?n0. IN(n0,x) & n = App(S1,n0)”
+    |> allI ("x",mem_sort (rastt "Pow(N0)")))
+
+
+“!A B. (!x:mem(A). ?!y:mem(B). P(x,y)) ==>
+ ?f:A->B. !a:mem(A). P(a, App(f,a))”
+
+eq_thm it inNf_ex
+*)
+
+
 val inNf_ex = prove_store("inNf_ex",
 e0
 (cheat)
@@ -393,3 +461,97 @@ fun mk_ind cond =
         val gened = disch_tomp |> allI (sname,ssort)
     in gened
     end
+
+
+fun mk_Pow s = mk_fun "Pow" [s]
+
+(*have difficulty identify which is the input set on the RHS, so take a string x of its name, already know the sort should be the same as the output value set, so do not need to take a variable*)
+fun mk_fex incond x = 
+    let val ((mname,msort),b) = dest_forall incond
+        val mvar = mk_var(mname,msort)
+        val misin = msort |> dest_sort |> #2 |> hd
+        val powt = mk_Pow misin
+        val (lb,rb) = b |> dest_dimp 
+        val value_set = lb |> dest_pred |> #2 |> el 2
+        val valuest = sort_of value_set
+        val input_set = mk_var(x,valuest)
+        val tomp = IN_def_P |> allE misin
+                            |> fVar_sInst_th (mk_fvar "P" [mvar]) rb
+                            |> allI (x,valuest)
+        val fvarP = mk_fvar "P" [input_set,value_set]
+        val spec_P2fun' = P2fun' |> specl [powt,powt]
+                                 |> fVar_sInst_th fvarP incond
+        val mped = spec_P2fun' |> C mp tomp
+    in mped
+    end
+
+fun mk_fdef fname fexth = 
+    let val skinputs = HOLset.listItems (cont fexth)
+    in fexth |> ex2fsym0 fname (List.map #1 skinputs)
+    end
+
+fun mk_ind1 fdef ind0 = ind0 |> rewr_rule[SS_def,fdef]
+
+val IN_EXT_iff = prove_store("IN_EXT_iff",
+e0
+(rpt strip_tac >> dimp_tac >> rpt strip_tac 
+ >-- (irule IN_EXT >> arw[]) >> arw[])
+(form_goal “∀A s1 s2. (∀x:mem(A). IN(x,s1) ⇔ IN(x,s2)) ⇔ s1 = s2”));
+
+
+fun mk_case1 fdef cases0 = 
+    let val (l,r) = dest_eq $ concl cases0
+        val spec_th = IN_EXT_iff |> sspecl [l,r]
+        val app_spec_th = cases0 |> mp $ iffRL spec_th
+                                 |> rewr_rule[fdef]
+                                 |> GSYM
+    in app_spec_th
+    end
+
+fun mk_rules1 fdef rules0 = 
+    rules0 |> rewr_rule[SS_def,fdef]
+
+
+fun disj_imp_distr_fconv f = 
+    let val (ante,conseq) = dest_imp f
+        val (d1,d2) = dest_disj ante
+        val th0 = disj_imp_distr d1 d2 conseq
+    in th0
+    end
+
+(*(?(a : set). P(a#)) ==> Q(c) <=> 
+   !a. P(a) ==> Q(c)
+
+rename due to:
+
+if (?a. P(a)) ==> Q(a)
+   then produce !a'. P(a') ==> Q(a) to avoid capture.
+
+val f = “(?a. P(a)) ==> Q(a)”
+*)
+fun pull_exists_fconv1 f = 
+    let val (ante,conseq) = dest_imp f 
+        val (v0 as (n,s),b) = dest_exists ante
+        val avoids = fvf f 
+        val vt = pvariantt avoids (mk_var v0)
+        val v = dest_var vt
+        val b' = substf (v0,vt) b
+        val goal = uncurry mk_forall v $ mk_imp b' conseq
+        val ex2all = b' |> assume |> existsI v0 vt b
+                        |> mp (assume f)
+                        |> disch b' |> allI v
+                        |> disch f
+        val all2ex = goal |> assume |> allE vt 
+                          |> undisch
+                          |> existsE v (assume ante)
+                          |> disch ante
+                          |> disch goal
+    in dimpI ex2all all2ex
+    end
+
+
+fun mk_rules2 rules1 = 
+    rules1 |> conv_rule
+              (basic_fconv no_conv disj_imp_distr_fconv)
+           |> conv_rule 
+              (basic_fconv no_conv pull_exists_fconv1)

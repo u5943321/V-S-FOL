@@ -256,7 +256,7 @@ e0
  >-- (strip_tac >> qexists_tac ‘CONJ o Pa(P0,P1)’ >> 
       arw[o_assoc,Pa_distr,CONJ_def]) >>
  qsuff_tac
- ‘?P2. !x:1->List(A) l ss. 
+ ‘?P2. !x:1->X l ss. 
   P2 o Pa(x,Pa(l,ss)) = TRUE <=>
    IN(Pa(l, x), ss) ==>
   !a:1->A. IN(Pa(Cons(A) o Pa(a, l), t o Pa(a, x)), ss)’

@@ -1021,6 +1021,7 @@ and ast_of_sort s =
     case dest_sort s of 
         (n,tl) => aApp(n, List.map ast_of_term tl)
 
+(*
 fun anno_ast (ns as (n,s)) ast = 
     case ast of
         aId a => 
@@ -1033,6 +1034,24 @@ fun anno_ast (ns as (n,s)) ast =
         aInfix (anno_ast ns ast1,str, anno_ast ns ast2)
       | aBinder (str,bns,ast1) => 
         aBinder (str,anno_ast ns bns, anno_ast ns ast1)
+*)
+
+fun anno_ast (ns as (n,s)) ast = 
+    case ast of
+        aId a => 
+        if a = n then 
+            aInfix (aId(a),":",ast_of_sort s)
+        else ast
+      | aApp (s,astl) => 
+        aApp(s,List.map (anno_ast ns) astl)
+      | aInfix (ast1,str,ast2) =>
+        aInfix (anno_ast ns ast1,str, anno_ast ns ast2)
+      | aBinder (str,bns,ast1) => 
+        let val n1 = name_of_ast bns
+        in if n = n1 then ast else
+        aBinder (str,anno_ast ns bns, anno_ast ns ast1)
+        end
+
 
 fun anno_cont_ast ct ast = 
     HOLset.foldr (uncurry anno_ast) ast ct
@@ -1057,6 +1076,26 @@ fun parse_form_with_cont ct fstr =
     in 
         form_from_pf env1 pf
     end
+
+
+(*
+val (ct,asl,w) = 
+cg $
+e0
+(rpt strip_tac >> drule prop_5_lemma_copa >> 
+ drule inc_Mono >> drule inc_fac >> 
+ first_x_assum (qspecl_then [‘x’] assume_tac) >>
+ cases_on “?x0 : 1 -> A. x:1->AB = iA o x0” (* 2 *)
+ >-- (arw[] >> pop_assum strip_assume_tac >>
+     ccontra_tac >> pop_assum strip_assume_tac >>
+     qby_tac ‘iA o x0 = iB o x0'’ 
+     >-- (pop_assum mp_tac >> 
+          pop_assum (assume_tac o GSYM) >>
+          strip_tac >> pop_assum (assume_tac o GSYM))))
+(form_goal “!A B AB iA:A->AB iB:B->AB. iscoPr(iA,iB) ==>
+!x:1->AB. (~(?x0:1->A. x = iA o x0)) <=> (?x0:1->B. x = iB o x0)”)
+
+*)
 
 
 (*

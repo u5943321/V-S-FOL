@@ -3606,11 +3606,11 @@ e0
      >-- (pop_assum mp_tac >> 
           pop_assum (assume_tac o GSYM) >>
           strip_tac >> pop_assum (assume_tac o GSYM) >>
-          qpick_x_assum ‘!x0 x0'. ~(iA o x0 = iB o x0')’
+          qpick_x_assum ‘!x0:1->A x0'. ~(iA o x0 = iB o x0')’
           (K all_tac) >> arw[]) >>
      rfs[]) >>
  arw[] >> pop_assum_list (map_every strip_assume_tac) (* 2 *)
- >-- (qby_tac ‘?x0. x = iA:A->AB o x0’
+ >-- (qby_tac ‘?x0:1->A. x = iA:A->AB o x0’
       >-- (qexists_tac ‘f0’ >> arw[]) >>
       first_x_assum opposite_tac) >>
  qexists_tac ‘f0’ >> arw[])

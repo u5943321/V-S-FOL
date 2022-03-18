@@ -563,6 +563,80 @@ fun mk_monotone fdef =
     in th1
     end
 
+val (incond,x) = 
+(“(!n. IN(n,y) <=> 
+          (n = O0 | 
+           ?n0. IN(n0,x) & n = App(S1,n0)))”,"x");
+
+val (incond,x) = 
+(“(∀xs. IN(xs,y) ⇔ 
+ (xs = Empty(X) | 
+  ∃xs0:mem(Pow(X)) x. IN(xs0,p) ∧ xs = Ins(x,xs0)) )”,"p");
+
+
+
+val (incond,x) = 
+(“(∀xsn. IN(xsn,y) ⇔ 
+ (xsn = Pair(Empty(X),O) | 
+  ∃xsn0 x. IN(xsn0,p) ∧ xsn = Pair(Ins(x,Fst(xsn0)),Suc(Snd(xsn0)))) )”,"p");
+
+
+val (incond,x) = 
+(“(∀ls. IN(ls,y) ⇔ 
+ (ls = Empty(N * X) | 
+  ∃ls0 x. IN(ls0,p) ∧ ls = Ins(Pair(CARD(ls0),x),ls0)))”,"p");
+
+
+(*mk_fdef "Cdf" (mk_fex incond x)*)
+
+fun mk_Pow s = mk_fun "Pow" [s]
+
+(*have difficulty identify which is the input set on the RHS, so take a string x of its name, already know the sort should be the same as the output value set, so do not need to take a variable*)
+fun mk_fex incond x = 
+    let val ((mname,msort),b) = dest_forall incond
+        val mvar = mk_var(mname,msort)
+        val misin = msort |> dest_sort |> #2 |> hd
+        val powt = mk_Pow misin
+        val (lb,rb) = b |> dest_dimp 
+        val value_set = lb |> dest_pred |> #2 |> el 2
+        val valuest = sort_of value_set
+        val input_set = mk_var(x,valuest)
+        val tomp = IN_def_P |> allE misin
+                            |> fVar_sInst_th (mk_fvar "P" [mvar]) rb
+                            |> allI (x,valuest)
+        val fvarP = mk_fvar "P" [input_set,value_set]
+        val spec_P2fun' = P2fun' |> specl [powt,powt]
+                                 |> fVar_sInst_th fvarP incond
+        val mped = spec_P2fun' |> C mp tomp
+    in mped
+    end
+
+fun mk_fdef fname fexth = 
+    let val skinputs = HOLset.listItems (cont fexth)
+    in fexth |> ex2fsym0 fname (List.map #1 skinputs)
+    end
+
+
+
+
+
+
+“(∀ls. IN(ls,y) ⇔ 
+ (ls = Empty(N * X) | 
+  ∃ls0 x. IN(ls0,p) ∧ ls = Ins(Pair(CARD(ls0),x),ls0)))”
+
+“ls = Empty(N * X) ==> IN(ls,y) &
+ (∃ls0 x. IN(ls0,p) ∧ ls = Ins(Pair(CARD(ls0),x),ls0)) ==> IN(ls,y)”
+
+“ls = Empty(N * X) ==> IN(ls,y) &
+ !ls0 x. IN(ls0,p) ∧ ls = Ins(Pair(CARD(ls0),x),ls0)) ==> IN(ls,y)”
+
+(**)
+fun mk_incond f = 
+
+
+
+
 (*
 fun imp_induce ip fm = 
     let val (ante0,conseq0) = dest_imp (concl ip)
@@ -659,3 +733,227 @@ val isLs_SS = mk_SS isLs_def isL's_def;
 val isL_rules0 = mk_rules isLf_monotone isLs_SS isLs_cond;
 val isL_cases0 = mk_cases isLf_monotone isL_rules0 isLs_cond; 
 val isL_ind0 = mk_ind isLs_cond;
+
+
+“(x = Pair(O,a)| 
+  ∃nx0:mem(N * X). IN(nx0,p) ∧ x = Pair(Suc(Fst(nx0)),App(f0,Snd(nx0))))” 
+|> assume
+
+val Nindf_ex = prove_store("Nindf_ex",
+e0
+(cheat)
+(form_goal “∃f:Pow(N * X) -> Pow(N * X). ∀p:mem(Pow(N * X)). (∀x. IN(x,App(f,p)) ⇔ 
+ (x = Pair(O,a)| 
+  ∃nx0:mem(N * X). IN(nx0,p) ∧ x = Pair(Suc(Fst(nx0)),App(f0,Snd(nx0)))) )”));
+
+val Nindf_def = Nindf_ex |> ex2fsym0 "Nindf" ["a","f0"]
+val Nindf_monotone = mk_monotone Nindf_def;
+val Nind's_def = mk_prim Nindf_def; 
+val Ninds_def = mk_LFP (rastt "Nind's(X,a,f0)");
+val Ninds_cond = mk_cond Ninds_def Nind's_def;
+val Ninds_SS = mk_SS Ninds_def Nind's_def;
+val Nind_rules0 = mk_rules Nindf_monotone Ninds_SS Ninds_cond;
+val Nind_cases0 = mk_cases Nindf_monotone Nind_rules0 Ninds_cond; 
+val Nind_ind0 = mk_ind Ninds_cond;
+
+
+“?Nats(0) /\ 
+ !n. ?Nats(n) ==> ?Nats(n^+)”
+
+“IN(0,Nats) /\ 
+  !n. ?Nats(n) ==> ?Nats(n^+)”
+
+“?Nats(0) /\ 
+ !n. ?Nats(n) ==> ?Nats(n^+)”
+
+
+val (inN_incond,x1) = 
+(“(!n. IN(n,y) <=> 
+          (n = O0 | 
+           ?n0. IN(n0,x) & n = App(S1,n0)))”,"x");
+
+
+val inNf_ex = mk_fex inN_incond x1;
+val inNf_def = mk_fdef "inNf" inNf_ex;
+val inNf_monotone = mk_monotone inNf_def;
+val inN's_def = mk_prim inNf_def;
+val inNs_def = mk_LFP (rastt "inN's");
+val inNs_cond = mk_cond inNs_def inN's_def;
+val inNs_SS = mk_SS inNs_def inN's_def;
+val inN_rules0 = mk_rules inNf_monotone inNs_SS inNs_cond;
+val inN_cases0 = mk_cases inNf_monotone inN_rules0 inNs_cond;
+val inN_ind0 = mk_ind inNs_cond;
+val inN_ind1 = mk_ind1 inNf_def inN_ind0;
+val inN_cases1 = mk_case1 inNf_def inN_cases0;
+val inN_rules1 = mk_rules1 inNf_def inN_rules0;
+val inN_rules2 = mk_rules2 inN_rules1;
+
+
+
+val (FI_incond,x2) = 
+(“(∀xs. IN(xs,y) ⇔ 
+ (xs = Empty(X) | 
+  ∃xs0:mem(Pow(X)) x. IN(xs0,p) ∧ xs = Ins(x,xs0)) )”,"p");
+
+
+
+val FIf_ex = mk_fex FI_incond x2;
+val FIf_def = mk_fdef "FIf" FIf_ex;
+val FIf_monotone = mk_monotone FIf_def;
+val FI's_def = mk_prim FIf_def;
+val FIs_def = mk_LFP (rastt "FI's(X)");
+val FIs_cond = mk_cond FIs_def FI's_def;
+val FIs_SS = mk_SS FIs_def FI's_def;
+val FI_rules0 = mk_rules FIf_monotone FIs_SS FIs_cond;
+val FI_cases0 = mk_cases FIf_monotone FI_rules0 FIs_cond;
+val FI_ind0 = mk_ind FIs_cond;
+val FI_ind1 = mk_ind1 FIf_def FI_ind0;
+val FI_cases1 = mk_case1 FIf_def FI_cases0;
+val FI_rules1 = mk_rules1 FIf_def FI_rules0;
+val FI_rules2 = mk_rules2 FI_rules1;
+
+
+val (Cd_incond,x3) = 
+(“(∀xsn. IN(xsn,y) ⇔ 
+ (xsn = Pair(Empty(X),O) | 
+  ∃xsn0 x. IN(xsn0,p) ∧ xsn = Pair(Ins(x,Fst(xsn0)),Suc(Snd(xsn0)))) )”,"p");
+
+
+val (Cd_incond,x3) = 
+(“(∀xsn. IN(xsn,y) ⇔ 
+ (xsn = Pair(Empty(X),O) | 
+  ∃xsn0 x. IN(xsn0,p) ∧ ~(IN(x,Fst(xsn0))) & xsn = Pair(Ins(x,Fst(xsn0)),Suc(Snd(xsn0)))) )”,"p");
+
+val Cdf_ex = mk_fex Cd_incond x3;
+val Cdf_def = mk_fdef "Cdf" Cdf_ex;
+val Cdf_monotone = mk_monotone Cdf_def;
+val Cd's_def = mk_prim Cdf_def;
+val Cds_def = mk_LFP (rastt "Cd's(X)");
+val Cds_cond = mk_cond Cds_def Cd's_def;
+val Cds_SS = mk_SS Cds_def Cd's_def;
+val Cd_rules0 = mk_rules Cdf_monotone Cds_SS Cds_cond;
+val Cd_cases0 = mk_cases Cdf_monotone Cd_rules0 Cds_cond;
+val Cd_ind0 = mk_ind Cds_cond;
+val Cd_ind1 = mk_ind1 Cdf_def Cd_ind0;
+val Cd_cases1 = mk_case1 Cdf_def Cd_cases0;
+val Cd_rules1 = mk_rules1 Cdf_def Cd_rules0;
+val Cd_rules2 = mk_rules2 Cd_rules1;
+
+
+
+
+
+val (isL_incond,x4) = 
+(“(∀ls. IN(ls,y) ⇔ 
+ (ls = Empty(N * X) | 
+  ∃ls0 x. IN(ls0,p) ∧ ls = Ins(Pair(CARD(ls0),x),ls0)))”,"p");
+
+
+val isLf_ex = mk_fex isL_incond x4;
+val isLf_def = mk_fdef "isLf" isLf_ex;
+val isLf_monotone = mk_monotone isLf_def;
+val isL's_def = mk_prim isLf_def;
+val isLs_def = mk_LFP (rastt "isL's(X)");
+val isLs_cond = mk_cond isLs_def isL's_def;
+val isLs_SS = mk_SS isLs_def isL's_def;
+val isL_rules0 = mk_rules isLf_monotone isLs_SS isLs_cond;
+val isL_cases0 = mk_cases isLf_monotone isL_rules0 isLs_cond;
+val isL_ind0 = mk_ind isLs_cond;
+val isL_ind1 = mk_ind1 isLf_def isL_ind0;
+val isL_cases1 = mk_case1 isLf_def isL_cases0;
+val isL_rules1 = mk_rules1 isLf_def isL_rules0;
+val isL_rules2 = mk_rules2 isL_rules1;
+
+(*TODO: subst eqn in mk_rules2*)
+
+!(A : set)  (B : set)  (R : rel(A#, B#)).
+        nonempty(R#) /\ isFun(R) ==>
+          !(a : mem(A#))  (b : mem(B#)).
+            App(asF(R), a#) = b# <=> Holds(R#, a#, b#): thm
+
+
+!A B R: rel(A,B). isFun
+
+E >--e--> A ==== f, g ====> B
+ 
+
+0 --e--> 1 ==== i1, i2 ====> 1 + 1
+       /
+      /
+     /
+    f
+   /
+  /
+1
+
+
+
+
+!A B f:A->B g:A->B X x:X->A. 
+ f o x = g o x <=> ?x0: pf(f:A->B,g,x). T
+
+
+ f o x = g o id(B) o x <=> ?x0: pf(f:A->B,g o id(B),x). T
+
+Eqa(f:A->B,g:A->B,e:E>->A,x0:pf(f,g o id(B),X)):X -> E
+= Eqa(f:A->B,g:A->B,e:E>->A,x0:pf(f,g,X)):X -> E
+
+P(a) ==> ?a'.Q(a')
+
+P(a) ==> Q(f(a))
+
+
+x = Eqa(f,g,e,x0)
+
+!x0:pf(f,g,X).P(x0) 
+
+
+Eqa(f:A->B,g:A->B,e:E>->A,x0:pf(f,g,X)):X -> E
+
+
+Eqa(i1,i2,e,f)
+
+Eqa(i1,i2,e,f0)
+
+
+!
+
+
+
+
+
+
+asF
+
+!f:A->B. P(f)
+
+“?f:1->0. T”
+rel2fun
+
+
+“A | B <=> ~A ==> B”
+
+“A <=> A'” “B <=> B'”
+
+“A /\ B <=> A' /\ B'”
+
+
+
+“A <=> A' ==> A /\ B <=> A' /\ B'”
+
+
+“P ==> Mono(f)”
+
+“!P. (P ==> Mono(f))”
+
+
+“?!p:X->2. (!x. p o x = TRUE <=> P(x:1->X))”
+
+
+
+
+
+
+
+
+
